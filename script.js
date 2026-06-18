@@ -3,7 +3,7 @@
 // ==========================================
 
 // Your deployed Cloudflare Worker URL to safely bypass CORS and unshorten URLs
-const PROXY_API_URL = "https://dark-rain-33d5.pxgiakhang.workers.dev";
+const PROXY_API_URL = "https://matcha-latte-scam-checker.dangja2012.workers.dev/";
 
 const samples = {
   1: "[VIETCOMBANK] Tai khoan cua ban dang bi dang nhap la tai thiet bi khac. Neu khong phai ban vui long truy cap vao link http://vietcornbank-login.cc de xac minh danh tinh va bao mat tai khoan ngay lap tuc!",
@@ -198,21 +198,19 @@ function extractAllUrls(text) {
 async function resolveShortLink(shortUrl) {
   try {
     const res = await fetch(PROXY_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shortUrl }),
-      signal: AbortSignal.timeout(4000) // Fallback limit of 4 seconds per fetch request
+      method: "POST",headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unshorten", shortUrl }), 
+      signal: AbortSignal.timeout(4000)
     });
-    
-    if (!res.ok) return shortUrl; // Fallback to raw link if gateway fails
-    
+    if (!res.ok) return shortUrl;
     const data = await res.json();
     return data.realUrl || shortUrl;
   } catch (err) {
-    console.warn(`Could not resolve link structure for ${shortUrl}:`, err);
+    console.warn(`Could not resolve ${shortUrl}:`, err);
     return shortUrl; 
   }
 }
+
 
 // ==========================================
 // 4. MAIN SCANNER RUNNER
@@ -316,73 +314,21 @@ async function callGemini(message) {
 }
 
 async function callGeminiWithModel(message, modelName) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+  const res = await fetch(PROXY_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "analyze", message }) 
+  });
 
-  const payload = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `
-Bạn là ScamCheck, công cụ giáo dục chống lừa đảo cho người lớn tuổi Việt Nam.
+  const raw = await res.text();
+  if (!res.ok) throw new Error(`Proxy AI Error: ${raw}`);
 
-Phân tích tin nhắn sau:
-"""${message}"""
-
-Yêu cầu:
-- Dùng tiếng Việt dễ hiểu.
-- Không bịa thông tin ngoài tin nhắn.
-- Nếu an toàn: risk = "An toàn", indicators = [], psychology = null.
-- Nếu nghi ngờ hoặc nguy hiểm: psychology phải có manipulation và advice.
-- indicators tối đa 4 mục.
-- actions đúng 3 mục.
-- quote nên là đoạn trích có thật trong tin nhắn.
-`
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 4096,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          risk: {
-            type: "string",
-            enum: ["An toàn", "Nghi ngờ", "Nguy hiểm"]
-          },
-          indicators: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                quote: { type: "string" },
-                reason: { type: "string" }
-              },
-              required: ["quote", "reason"]
-            }
-          },
-          actions: {
-            type: "array",
-            items: { type: "string" }
-          },
-          psychology: {
-            nullable: true,
-            type: "object",
-            properties: {
-              manipulation: { type: "string" },
-              advice: { type: "string" }
-            },
-            required: ["manipulation", "advice"]
-          }
-        },
-        required: ["risk", "indicators", "actions", "psychology"]
-      }
-    }
-  };
+  const apiData = JSON.parse(raw);
+  const text = apiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  
+  if (!text) throw new Error("Empty content signature response.");
+  return JSON.parse(text);
+}
 
   const res = await fetch(url, {
     method: "POST",
