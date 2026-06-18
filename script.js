@@ -188,17 +188,16 @@ function switchTab(tabName) {
 // 3. URL DE-OBFUSCATION REFACTORING (THE PIPELINE)
 // ==========================================
 
-// Extracts all strings starting with http:// or https://
 function extractAllUrls(text) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return text.match(urlRegex) || [];
 }
 
-// Sends short links to your Cloudflare Worker middleware wrapper
 async function resolveShortLink(shortUrl) {
   try {
     const res = await fetch(PROXY_API_URL, {
-      method: "POST",headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unshorten", shortUrl }), 
       signal: AbortSignal.timeout(4000)
     });
@@ -210,7 +209,6 @@ async function resolveShortLink(shortUrl) {
     return shortUrl; 
   }
 }
-
 
 // ==========================================
 // 4. MAIN SCANNER RUNNER
@@ -237,14 +235,12 @@ async function analyzeMessage() {
   analyzeBtn.disabled = true;
 
   try {
-    // Look for all embedded URLs inside user input text layout
     const foundUrls = extractAllUrls(msg);
     let completelyUnshortenedMsg = msg;
 
     if (foundUrls.length > 0) {
       analyzeBtn.innerText = "🔍 Đang giải mã đường dẫn ẩn...";
       
-      // Request all link evaluations concurrently in parallel
       const resolvePromises = foundUrls.map(async (url) => {
         const realUrl = await resolveShortLink(url);
         return { original: url, resolved: realUrl };
@@ -252,7 +248,6 @@ async function analyzeMessage() {
       
       const resolvedLinks = await Promise.all(resolvePromises);
       
-      // Systematically rewrite short matches to target addresses inside user string copy
       resolvedLinks.forEach(item => {
         completelyUnshortenedMsg = completelyUnshortenedMsg.replace(item.original, item.resolved);
       });
@@ -260,7 +255,6 @@ async function analyzeMessage() {
 
     analyzeBtn.innerText = "Đang phân tích bằng Gemini...";
 
-    // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
     const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
 
@@ -273,25 +267,17 @@ async function analyzeMessage() {
     fallback.notice = "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
     saveToHistory(msg, fallback);
     displayResult(msg, fallback);
-  } finally {
+  } chunks: {
     analyzeBtn.disabled = false;
     analyzeBtn.innerText = "🔍 Kiểm tra ngay";
   }
 }
 
 // ==========================================
-// 5. LLM INTEGRATION LAYER
+// 5. LLM INTEGRATION LAYER (FIXED & CLEANED)
 // ==========================================
 
 async function callGemini(message) {
-  if (
-    typeof GEMINI_API_KEY === "undefined" ||
-    !GEMINI_API_KEY ||
-    GEMINI_API_KEY.includes("DAN_API_KEY")
-  ) {
-    throw new Error("Chưa cấu hình GEMINI_API_KEY trong config.js");
-  }
-
   const modelsToTry = [
     "gemini-2.5-flash",
     "gemini-flash-latest",
@@ -324,45 +310,23 @@ async function callGeminiWithModel(message, modelName) {
   if (!res.ok) throw new Error(`Proxy AI Error: ${raw}`);
 
   const apiData = JSON.parse(raw);
-  const text = apiData?.candidates?.[0]?.content?.parts?.[0]?.text;
   
-  if (!text) throw new Error("Empty content signature response.");
-  return JSON.parse(text);
-}
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const raw = await res.text();
-
-  if (!res.ok) {
-    throw new Error(`Gemini API lỗi ${res.status} với model ${modelName}: ${raw}`);
-  }
-
-  let apiData;
-  try {
-    apiData = JSON.parse(raw);
-  } catch {
-    throw new Error(`Gemini API trả response không phải JSON với model ${modelName}: ${raw}`);
-  }
-
-  const finishReason = apiData?.candidates?.[0]?.finishReason;
+  // Checking if worker responded with raw payload content wrapper
   const text = apiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text || !text.trim()) {
-    throw new Error(`Gemini trả về rỗng với model ${modelName}. Finish reason: ${finishReason}. Raw: ${raw}`);
+  if (text) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return JSON.parse(extractJsonObject(text));
+    }
   }
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return JSON.parse(extractJsonObject(text));
+  // Fallback direct root parsing matching secure output worker layouts
+  if (apiData && typeof apiData === "object" && apiData.risk) {
+    return apiData;
   }
+  
+  throw new Error("Empty or structurally unparseable content signature response.");
 }
 
 function extractJsonObject(text) {
@@ -375,7 +339,7 @@ function extractJsonObject(text) {
   const lastBrace = cleaned.lastIndexOf("}");
 
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-    throw new Error("Không tìm thấy JSON object trong Gemini text: " + cleaned);
+    throw new Error("Không tìm thấy JSON object trong dữ liệu.");
   }
 
   return cleaned.slice(firstBrace, lastBrace + 1);
@@ -544,7 +508,7 @@ function displayResult(originalMsg, data) {
 
   const highlightedMsg = highlightQuotes(originalMsg, data.indicators || []);
   latestAnalyzedMessage = originalMsg;
-const rescueSection = buildRescueSection(originalMsg, data);
+  const rescueSection = buildRescueSection(originalMsg, data);
 
   const indicatorsHtml =
     data.indicators && data.indicators.length
@@ -819,6 +783,7 @@ function escapeHtml(value) {
     "'": "&#039;"
   }[char]));
 }
+
 function buildRescueSection(originalMsg, data) {
   return `
     <div class="rescue-card">
