@@ -172,3 +172,132 @@ button:disabled {
   font-weight: 900;
   color: #1d4ed8;
 }
+/* =========================
+   RESPONSIVE FIX: iPad + Phone
+========================= */
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  padding: 12px;
+}
+
+main {
+  width: 100%;
+  max-width: 768px;
+}
+
+textarea,
+input,
+button {
+  max-width: 100%;
+}
+
+/* iPad */
+@media (min-width: 740px) and (max-width: 1023px) {
+  body {
+    padding: 12px;
+    font-size: 17px;
+  }
+
+  main {
+    padding: 20px !important;
+    border-radius: 18px !important;
+  }
+
+  h1 {
+    font-size: 2.4rem !important;
+  }
+
+  .tab-btn {
+    font-size: 1rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .rescue-option-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Phone */
+@media (max-width: 739px) {
+  body {
+    padding: 8px;
+    font-size: 16px;
+  }
+
+  main {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  h1 {
+    font-size: 2rem !important;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+
+  .tab-btn {
+    font-size: 0.95rem;
+    padding: 0.7rem 0.3rem;
+  }
+
+  .sample-btn {
+    width: 100%;
+    font-size: 0.95rem;
+  }
+
+  textarea {
+    font-size: 1rem !important;
+    min-height: 150px;
+  }
+
+  #analyze-btn {
+    font-size: 1.1rem !important;
+    padding: 1rem !important;
+  }
+
+  #tab-library .flex.gap-2.mb-3 {
+    flex-direction: column;
+  }
+
+  #library-search {
+    width: 100%;
+  }
+
+  #tab-library button {
+    min-height: 48px;
+  }
+
+  .lib-filter-btn {
+    flex: 1 1 45%;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .rescue-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rescue-btn {
+    font-size: 1rem;
+    min-height: 52px;
+  }
+
+  .hotline-number {
+    display: block;
+    font-size: 1.2rem;
+    margin-top: 4px;
+  }
+
+  #history-list button {
+    display: block;
+  }
+}
+/*PC*/
+@media (min-width: 1024px) {}
