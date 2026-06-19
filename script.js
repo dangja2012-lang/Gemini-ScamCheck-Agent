@@ -286,136 +286,33 @@ async function analyzeMessage() {
 // ==========================================
 
 async function callGemini(message) {
-  if (
-    typeof GEMINI_API_KEY === "undefined" ||
-    !GEMINI_API_KEY ||
-    GEMINI_API_KEY.includes("DAN_API_KEY")
-  ) {
-    throw new Error("Chưa cấu hình GEMINI_API_KEY trong config.js");
-  }
+  // 1. THAY ĐƯỜNG DẪN NÀY BẰNG URL WORKER THỰC TẾ CỦA BẠN
+  const workerUrl = "https://dark-rain-33d5.pxgiakhang.workers.dev"; 
 
-  const modelsToTry = [
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-2.0-flash"
-  ];
+  console.log("Đang gửi tin nhắn lên Cloudflare Worker để phân tích...");
 
-  let lastError = null;
-
-  for (const modelName of modelsToTry) {
-    try {
-      console.log("Đang thử model:", modelName);
-      return await callGeminiWithModel(message, modelName);
-    } catch (err) {
-      console.warn(`Model ${modelName} lỗi:`, err);
-      lastError = err;
-    }
-  }
-
-  throw lastError || new Error("Không gọi được Gemini.");
-}
-
-async function callGeminiWithModel(message, modelName) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
-
-  const payload = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `
-Bạn là ScamCheck, công cụ giáo dục chống lừa đảo cho người lớn tuổi Việt Nam.
-
-Phân tích tin nhắn sau:
-"""${message}"""
-
-Yêu cầu:
-- Dùng tiếng Việt dễ hiểu.
-- Không bịa thông tin ngoài tin nhắn.
-- Nếu an toàn: risk = "An toàn", indicators = [], psychology = null.
-- Nếu nghi ngờ hoặc nguy hiểm: psychology phải có manipulation và advice.
-- indicators tối đa 4 mục.
-- actions đúng 3 mục.
-- quote nên là đoạn trích có thật trong tin nhắn.
-`
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 4096,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          risk: {
-            type: "string",
-            enum: ["An toàn", "Nghi ngờ", "Nguy hiểm"]
-          },
-          indicators: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                quote: { type: "string" },
-                reason: { type: "string" }
-              },
-              required: ["quote", "reason"]
-            }
-          },
-          actions: {
-            type: "array",
-            items: { type: "string" }
-          },
-          psychology: {
-            nullable: true,
-            type: "object",
-            properties: {
-              manipulation: { type: "string" },
-              advice: { type: "string" }
-            },
-            required: ["manipulation", "advice"]
-          }
-        },
-        required: ["risk", "indicators", "actions", "psychology"]
-      }
-    }
-  };
-
-  const res = await fetch(url, {
+  const res = await fetch(workerUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      action: "analyze",
+      message: message
+    })
   });
 
   const raw = await res.text();
 
   if (!res.ok) {
-    throw new Error(`Gemini API lỗi ${res.status} với model ${modelName}: ${raw}`);
+    throw new Error(`Worker lỗi ${res.status}: ${raw}`);
   }
 
-  let apiData;
+  // Phản hồi từ Worker gửi về đã là chuỗi JSON sạch chứa dữ liệu risk, indicators...
   try {
-    apiData = JSON.parse(raw);
-  } catch {
-    throw new Error(`Gemini API trả response không phải JSON với model ${modelName}: ${raw}`);
-  }
-
-  const finishReason = apiData?.candidates?.[0]?.finishReason;
-  const text = apiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text || !text.trim()) {
-    throw new Error(`Gemini trả về rỗng với model ${modelName}. Finish reason: ${finishReason}. Raw: ${raw}`);
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return JSON.parse(extractJsonObject(text));
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`Dữ liệu Worker trả về không hợp lệ: ${raw}`);
   }
 }
 
