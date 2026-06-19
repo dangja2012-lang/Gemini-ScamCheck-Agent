@@ -200,7 +200,10 @@ async function resolveShortLink(shortUrl) {
     const res = await fetch(PROXY_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shortUrl }),
+      body: JSON.stringify({
+        action: "unshorten",
+        shortUrl
+      }),
       signal: AbortSignal.timeout(4000) // Fallback limit of 4 seconds per fetch request
     });
     
@@ -256,7 +259,7 @@ async function analyzeMessage() {
       
       // Systematically rewrite short matches to target addresses inside user string copy
       resolvedLinks.forEach(item => {
-        completelyUnshortenedMsg = completelyUnshortenedMsg.replace(item.original, item.resolved);
+        completelyUnshortenedMsg = completelyUnshortenedMsg.split(item.original).join(item.resolved);
       });
     }
 
@@ -287,7 +290,7 @@ async function analyzeMessage() {
 
 async function callGemini(message) {
   // 1. THAY ĐƯỜNG DẪN NÀY BẰNG URL WORKER THỰC TẾ CỦA BẠN
-  const workerUrl = "https://dark-rain-33d5.pxgiakhang.workers.dev"; 
+  const workerUrl = PROXY_API_URL; 
 
   console.log("Đang gửi tin nhắn lên Cloudflare Worker để phân tích...");
 
