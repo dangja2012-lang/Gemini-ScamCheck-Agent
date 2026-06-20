@@ -267,6 +267,7 @@ async function analyzeMessage() {
 
     // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
+    console.log("AI DATA:", aiData);
     const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
 
     saveToHistory(msg, parsedData);
