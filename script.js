@@ -2,13 +2,8 @@
 // 1. GLOBAL CONFIGURATION & DATA DICTIONARIES
 // ==========================================
 
+// Your deployed Cloudflare Worker URL to safely bypass CORS and unshorten URLs
 const PROXY_API_URL = "https://dark-rain-33d5.pxgiakhang.workers.dev";
-
-const MAX_MESSAGE_LENGTH = 5000;
-const MAX_URLS_TO_RESOLVE = 3;
-const URL_RESOLVE_TIMEOUT_MS = 2500;
-const AI_TIMEOUT_MS = 15000;
-const DEBUG_MODE = true;
 
 const samples = {
   1: "[VIETCOMBANK] Tai khoan cua ban dang bi dang nhap la tai thiet bi khac. Neu khong phai ban vui long truy cap vao link http://vietcornbank-login.cc de xac minh danh tinh va bao mat tai khoan ngay lap tuc!",
@@ -103,6 +98,7 @@ const scamLibrary = [
   }
 ];
 
+let currentCategory = "all";
 const VERIFIED_HOTLINES = [
   {
     name: "Công an",
@@ -154,7 +150,6 @@ const VERIFIED_HOTLINES = [
   }
 ];
 
-let currentCategory = "all";
 let latestAnalyzedMessage = "";
 
 // ==========================================
@@ -190,35 +185,17 @@ function switchTab(tabName) {
 }
 
 // ==========================================
-// 3. DEBUG HELPERS
+// 3. URL DE-OBFUSCATION REFACTORING (THE PIPELINE)
 // ==========================================
 
-function debugLog(...args) {
-  if (DEBUG_MODE) console.log(...args);
-}
-
-function debugGroup(label, callback) {
-  if (!DEBUG_MODE) return;
-  console.group(label);
-  try {
-    callback();
-  } finally {
-    console.groupEnd();
-  }
-}
-
-// ==========================================
-// 4. URL DE-OBFUSCATION PIPELINE
-// ==========================================
-
+// Extracts all strings starting with http:// or https://
 function extractAllUrls(text) {
-  const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
-  return [...new Set(text.match(urlRegex) || [])];
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.match(urlRegex) || [];
 }
 
+// Sends short links to your Cloudflare Worker middleware wrapper
 async function resolveShortLink(shortUrl) {
-  const startedAt = performance.now();
-
   try {
     const res = await fetch(PROXY_API_URL, {
       method: "POST",
@@ -227,34 +204,21 @@ async function resolveShortLink(shortUrl) {
         action: "unshorten",
         shortUrl
       }),
-      signal: AbortSignal.timeout(URL_RESOLVE_TIMEOUT_MS)
+      signal: AbortSignal.timeout(4000) // Fallback limit of 4 seconds per fetch request
     });
-
-    if (!res.ok) {
-      debugLog("[unshorten] Worker failed:", res.status, shortUrl);
-      return shortUrl;
-    }
-
+    
+    if (!res.ok) return shortUrl; // Fallback to raw link if gateway fails
+    
     const data = await res.json();
-    const realUrl = data.realUrl || shortUrl;
-
-    debugLog("[unshorten]", {
-      original: shortUrl,
-      resolved: realUrl,
-      elapsedMs: Math.round(performance.now() - startedAt),
-      source: data.source,
-      notice: data.notice
-    });
-
-    return realUrl;
+    return data.realUrl || shortUrl;
   } catch (err) {
-    console.warn(`[unshorten] Could not resolve ${shortUrl}:`, err);
-    return shortUrl;
+    console.warn(`Could not resolve link structure for ${shortUrl}:`, err);
+    return shortUrl; 
   }
 }
 
 // ==========================================
-// 5. MAIN SCANNER RUNNER
+// 4. MAIN SCANNER RUNNER
 // ==========================================
 
 async function analyzeMessage() {
@@ -267,97 +231,66 @@ async function analyzeMessage() {
     return;
   }
 
-  if (msg.length > MAX_MESSAGE_LENGTH) {
-    showError(`⚠️ Tin nhắn quá dài, vui lòng rút gọn dưới ${MAX_MESSAGE_LENGTH} ký tự.`);
+  if (msg.length > 5000) {
+    showError("⚠️ Tin nhắn quá dài, vui lòng rút gọn dưới 5000 ký tự.");
     return;
   }
-
-  let completelyUnshortenedMsg = msg;
 
   resultDiv.classList.remove("hidden");
   resultDiv.innerHTML = loadingHtml();
 
   analyzeBtn.disabled = true;
 
-  console.time("analysis-total");
-
   try {
-    const foundUrls = extractAllUrls(msg).slice(0, MAX_URLS_TO_RESOLVE);
-
-    debugGroup("Scanner Input", () => {
-      console.log("Original message:", msg);
-      console.log("Found URLs:", foundUrls);
-    });
+    // Look for all embedded URLs inside user input text layout
+    const foundUrls = extractAllUrls(msg);
+    let completelyUnshortenedMsg = msg;
 
     if (foundUrls.length > 0) {
       analyzeBtn.innerText = "🔍 Đang giải mã đường dẫn ẩn...";
-      console.time("url-resolution");
-
-      const resolvedLinks = await Promise.all(
-        foundUrls.map(async url => {
-          const realUrl = await resolveShortLink(url);
-          return { original: url, resolved: realUrl };
-        })
-      );
-
-      resolvedLinks.forEach(item => {
-        completelyUnshortenedMsg = completelyUnshortenedMsg
-          .split(item.original)
-          .join(item.resolved);
+      
+      // Request all link evaluations concurrently in parallel
+      const resolvePromises = foundUrls.map(async (url) => {
+        const realUrl = await resolveShortLink(url);
+        return { original: url, resolved: realUrl };
       });
-
-      console.timeEnd("url-resolution");
-
-      debugGroup("Resolved URLs", () => {
-        console.table(resolvedLinks);
-        console.log("Unshortened message:", completelyUnshortenedMsg);
+      
+      const resolvedLinks = await Promise.all(resolvePromises);
+      
+      // Systematically rewrite short matches to target addresses inside user string copy
+      resolvedLinks.forEach(item => {
+        completelyUnshortenedMsg = completelyUnshortenedMsg.split(item.original).join(item.resolved);
       });
     }
 
-    analyzeBtn.innerText = "Đang phân tích bằng AI...";
+    analyzeBtn.innerText = "Đang phân tích bằng Gemini...";
 
-    console.time("ai-analysis");
+    // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
-    console.timeEnd("ai-analysis");
-
-    debugGroup("AI DATA RAW", () => {
-      console.log(aiData);
-    });
-
+    console.log("AI DATA:", aiData);
     const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
-
-    debugGroup("AI DATA NORMALIZED", () => {
-      console.log(parsedData);
-    });
 
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
   } catch (err) {
-    console.error("AI error:", err);
+    console.error("Gemini error:", err);
 
-    const fallback = localFallbackAnalysis(completelyUnshortenedMsg);
-    fallback.notice = "AI chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
-    fallback.debug = {
-      frontendError: err.message,
-      usedMessage: completelyUnshortenedMsg,
-      source: "frontend-catch-fallback"
-    };
-
+    const fallback = localFallbackAnalysis(msg);
+    fallback.notice = "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
     saveToHistory(msg, fallback);
     displayResult(msg, fallback);
   } finally {
-    console.timeEnd("analysis-total");
     analyzeBtn.disabled = false;
     analyzeBtn.innerText = "🔍 Kiểm tra ngay";
   }
 }
 
 // ==========================================
-// 6. LLM INTEGRATION LAYER
+// 5. LLM INTEGRATION LAYER
 // ==========================================
 
 async function callGemini(message) {
-  debugLog("[AI] Sending message to Worker...");
+  console.log("Đang gửi tin nhắn lên Cloudflare Worker...");
 
   const res = await fetch(PROXY_API_URL, {
     method: "POST",
@@ -368,15 +301,10 @@ async function callGemini(message) {
       action: "analyze",
       message
     }),
-    signal: AbortSignal.timeout(AI_TIMEOUT_MS)
+    signal: AbortSignal.timeout(15000)
   });
 
   const raw = await res.text();
-
-  debugGroup("[AI] Worker raw response", () => {
-    console.log("HTTP status:", res.status);
-    console.log("Raw:", raw);
-  });
 
   if (!res.ok) {
     throw new Error(`Worker lỗi ${res.status}: ${raw}`);
@@ -387,8 +315,7 @@ async function callGemini(message) {
   try {
     data = JSON.parse(raw);
   } catch {
-    const jsonText = extractJsonObject(raw);
-    data = JSON.parse(jsonText);
+    data = JSON.parse(extractJsonObject(raw));
   }
 
   if (data?.risk) return data;
@@ -413,9 +340,8 @@ function extractJsonObject(text) {
 
   return cleaned.slice(firstBrace, lastBrace + 1);
 }
-
 // ==========================================
-// 7. RESPONSE NORMALIZATION & FALLBACKS
+// 6. RESPONSE NORMALIZATION & FALLBACKS
 // ==========================================
 
 function normalizeAiData(data, originalMsg) {
@@ -434,7 +360,7 @@ function normalizeAiData(data, originalMsg) {
 
   if (risk !== "An toàn" && indicators.length === 0) {
     indicators.push({
-      quote: originalMsg.slice(0, 60),
+      quote: originalMsg.slice(0, 40),
       reason: "Tin nhắn có dấu hiệu bất thường cần kiểm chứng."
     });
   }
@@ -475,20 +401,18 @@ function normalizeAiData(data, originalMsg) {
     indicators,
     actions,
     psychology,
-    source: data?.source || "Unknown",
-    notice: data?.notice || "",
-    debug: data?.debug || null
+    source: "Gemini AI"
   };
 }
 
 function localFallbackAnalysis(msg) {
-  const clean = String(msg || "").toLowerCase();
+  const clean = msg.toLowerCase();
 
   const data = {
     risk: "Nghi ngờ",
     indicators: [
       {
-        quote: String(msg || "").slice(0, 60),
+        quote: msg.slice(0, 40),
         reason: "Tin nhắn có nội dung cần kiểm chứng thêm."
       }
     ],
@@ -501,7 +425,7 @@ function localFallbackAnalysis(msg) {
       manipulation: "Tin nhắn có thể tạo cảm giác gấp gáp khiến người nhận mất bình tĩnh.",
       advice: "Bác cứ bình tĩnh, kiểm tra trước là cách bảo vệ mình rất tốt."
     },
-    source: "Frontend fallback"
+    source: "Dự phòng"
   };
 
   if (
@@ -559,7 +483,7 @@ function localFallbackAnalysis(msg) {
 }
 
 // ==========================================
-// 8. UI DYNAMIC RENDERING COMPONENT
+// 7. UI DYNAMIC RENDERING COMPONENT
 // ==========================================
 
 function displayResult(originalMsg, data) {
@@ -577,23 +501,9 @@ function displayResult(originalMsg, data) {
     ? `<span class="inline-block mt-2 text-xs font-bold px-2 py-1 rounded-full bg-white/70 border border-current">${escapeHtml(data.source)}</span>`
     : "";
 
-  const noticeHtml = data.notice
-    ? `<div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-sm font-medium">${escapeHtml(data.notice)}</div>`
-    : "";
-
-  const debugHtml = data.debug
-    ? `
-      <details class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left">
-        <summary class="cursor-pointer font-bold text-slate-700">🧪 Debug</summary>
-        <pre class="text-xs mt-3 overflow-auto whitespace-pre-wrap text-slate-700">${escapeHtml(JSON.stringify(data.debug, null, 2))}</pre>
-      </details>
-    `
-    : "";
-
   const highlightedMsg = highlightQuotes(originalMsg, data.indicators || []);
   latestAnalyzedMessage = originalMsg;
-
-  const rescueSection = buildRescueSection(originalMsg, data);
+const rescueSection = buildRescueSection(originalMsg, data);
 
   const indicatorsHtml =
     data.indicators && data.indicators.length
@@ -629,6 +539,10 @@ function displayResult(originalMsg, data) {
     `
     : "";
 
+  const noticeHtml = data.notice
+    ? `<div class="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-xl text-sm font-medium">${escapeHtml(data.notice)}</div>`
+    : "";
+
   resultDiv.innerHTML = `
     ${noticeHtml}
 
@@ -660,9 +574,8 @@ function displayResult(originalMsg, data) {
       </div>
     </div>
 
-    ${psychologyHtml}
-    ${debugHtml}
-    ${rescueSection}
+   ${psychologyHtml}
+   ${rescueSection}
   `;
 }
 
@@ -674,9 +587,7 @@ function highlightQuotes(text, indicators) {
     if (!quote || quote.length < 3) return;
 
     const safeQuote = escapeHtml(quote);
-    safeText = safeText
-      .split(safeQuote)
-      .join(`<mark class="bg-yellow-300 font-semibold px-1 rounded">${safeQuote}</mark>`);
+    safeText = safeText.split(safeQuote).join(`<mark class="bg-yellow-300 font-semibold px-1 rounded">${safeQuote}</mark>`);
   });
 
   return safeText;
@@ -705,7 +616,7 @@ function showError(message) {
 }
 
 // ==========================================
-// 9. LOCAL STORAGE HISTORY COMPONENT
+// 8. LOCAL STORAGE HISTORY COMPONENT
 // ==========================================
 
 function saveToHistory(msg, data) {
@@ -767,16 +678,14 @@ function renderHistory() {
 }
 
 // ==========================================
-// 10. KNOWLEDGE BASE & SEARCH COMPONENT
+// 9. KNOWLEDGE BASE & SEARCH COMPONENT
 // ==========================================
 
 function filterCategory(category, element) {
   currentCategory = category;
-
   document.querySelectorAll(".lib-filter-btn").forEach(btn => {
     btn.className = "lib-filter-btn";
   });
-
   element.className = "lib-filter-btn active-filter";
   handleFilterAndSearch();
 }
@@ -802,11 +711,10 @@ function handleFilterAndSearch() {
 function renderLibraryGrid(dataList = scamLibrary) {
   const gridContainer = document.getElementById("library-grid");
   if (!gridContainer) return;
-
   const countEl = document.getElementById("library-count");
-  if (countEl) {
-    countEl.textContent = `Hiển thị ${dataList.length}/${scamLibrary.length} kịch bản.`;
-  }
+if (countEl) {
+  countEl.textContent = `Hiển thị ${dataList.length}/${scamLibrary.length} kịch bản.`;
+}
 
   if (!dataList.length) {
     gridContainer.innerHTML = `
@@ -844,7 +752,6 @@ function renderLibraryGrid(dataList = scamLibrary) {
         </button>
       </div>
     `;
-
     gridContainer.appendChild(card);
   });
 }
@@ -866,10 +773,15 @@ function getBadge(category) {
   return "";
 }
 
-// ==========================================
-// 11. RESCUE SECTION
-// ==========================================
-
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
 function buildRescueSection(originalMsg, data) {
   return `
     <div class="rescue-card">
@@ -980,14 +892,18 @@ function getRecommendedHotlines(choice, message) {
   if (choice === "transferred" || choice === "otp") {
     selected.push(
       ...VERIFIED_HOTLINES.filter(
-        h => h.tags.includes("police") || h.tags.includes("report")
+        h =>
+          h.tags.includes("police") ||
+          h.tags.includes("report")
       )
     );
   }
 
   if (choice === "clicked" || choice === "none") {
     selected.push(
-      ...VERIFIED_HOTLINES.filter(h => h.tags.includes("report"))
+      ...VERIFIED_HOTLINES.filter(
+        h => h.tags.includes("report")
+      )
     );
   }
 
@@ -997,19 +913,25 @@ function getRecommendedHotlines(choice, message) {
     clean.includes("vcb")
   ) {
     selected.push(
-      ...VERIFIED_HOTLINES.filter(h => h.tags.includes("vietcombank"))
+      ...VERIFIED_HOTLINES.filter(
+        h => h.tags.includes("vietcombank")
+      )
     );
   }
 
   if (clean.includes("bidv")) {
     selected.push(
-      ...VERIFIED_HOTLINES.filter(h => h.tags.includes("bidv"))
+      ...VERIFIED_HOTLINES.filter(
+        h => h.tags.includes("bidv")
+      )
     );
   }
 
   if (clean.includes("agribank")) {
     selected.push(
-      ...VERIFIED_HOTLINES.filter(h => h.tags.includes("agribank"))
+      ...VERIFIED_HOTLINES.filter(
+        h => h.tags.includes("agribank")
+      )
     );
   }
 
@@ -1021,7 +943,9 @@ function getRecommendedHotlines(choice, message) {
     clean.includes("chuyen khoan")
   ) {
     selected.push(
-      ...VERIFIED_HOTLINES.filter(h => h.tags.includes("bank"))
+      ...VERIFIED_HOTLINES.filter(
+        h => h.tags.includes("bank")
+      )
     );
   }
 
@@ -1037,17 +961,14 @@ function getRecommendedHotlines(choice, message) {
 
   if (unique.length === 0) {
     unique.push(
-      ...VERIFIED_HOTLINES.filter(h => h.number === "156" || h.number === "5656")
+      ...VERIFIED_HOTLINES.filter(
+        h => h.number === "156" || h.number === "5656"
+      )
     );
   }
 
   return unique.slice(0, 6);
 }
-
-// ==========================================
-// 12. UTILS
-// ==========================================
-
 function clearLibrarySearch() {
   const input = document.getElementById("library-search");
   if (input) input.value = "";
@@ -1062,14 +983,4 @@ function clearLibrarySearch() {
   if (firstBtn) firstBtn.className = "lib-filter-btn active-filter";
 
   renderLibraryGrid(scamLibrary);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[char]));
 }
