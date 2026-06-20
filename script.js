@@ -288,7 +288,7 @@ async function callGemini(message) {
     !GEMINI_API_KEY ||
     GEMINI_API_KEY.includes("DAN_API_KEY")
   ) {
-    throw new Error("Chưa cấu hình GEMINI_API_KEY trong config.js");
+    throw new Error("Chưa cấu hình GEMINI_API_KEY");
   }
 
   const modelsToTry = [
