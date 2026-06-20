@@ -2,9 +2,6 @@
 // 1. GLOBAL CONFIGURATION & DATA DICTIONARIES
 // ==========================================
 
-// Your deployed Cloudflare Worker URL to safely bypass CORS and unshorten URLs
-const PROXY_API_URL = "https://dark-rain-33d5.pxgiakhang.workers.dev";
-
 const samples = {
   1: "[VIETCOMBANK] Tai khoan cua ban dang bi dang nhap la tai thiet bi khac. Neu khong phai ban vui long truy cap vao link http://vietcornbank-login.cc de xac minh danh tinh va bao mat tai khoan ngay lap tuc!",
   2: "Bo Cong An thong bao: Ong/Ba dang lien quan den mot du an ma tuy xuyen quoc gia. Yeu cau cung cap ma OTP va rut het tien gui vao tai khoan an toan cua co quan dieu tra de kiem xat. Neu khong hop tac se bi bat giam sau 2 gio.",
@@ -200,10 +197,7 @@ async function resolveShortLink(shortUrl) {
     const res = await fetch(PROXY_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "unshorten",
-        shortUrl
-      }),
+      body: JSON.stringify({ shortUrl }),
       signal: AbortSignal.timeout(4000) // Fallback limit of 4 seconds per fetch request
     });
     
@@ -259,7 +253,7 @@ async function analyzeMessage() {
       
       // Systematically rewrite short matches to target addresses inside user string copy
       resolvedLinks.forEach(item => {
-        completelyUnshortenedMsg = completelyUnshortenedMsg.split(item.original).join(item.resolved);
+        completelyUnshortenedMsg = completelyUnshortenedMsg.replace(item.original, item.resolved);
       });
     }
 
@@ -267,7 +261,6 @@ async function analyzeMessage() {
 
     // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
-    console.log("AI DATA:", aiData);
     const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
 
     saveToHistory(msg, parsedData);
@@ -290,39 +283,137 @@ async function analyzeMessage() {
 // ==========================================
 
 async function callGemini(message) {
-  console.log("Đang gửi tin nhắn lên Cloudflare Worker...");
+  if (
+    typeof GEMINI_API_KEY === "undefined" ||
+    !GEMINI_API_KEY ||
+    GEMINI_API_KEY.includes("DAN_API_KEY")
+  ) {
+    throw new Error("Chưa cấu hình GEMINI_API_KEY trong config.js");
+  }
 
-  const res = await fetch(PROXY_API_URL, {
+  const modelsToTry = [
+    "gemini-2.5-flash",
+    "gemini-flash-latest",
+    "gemini-2.0-flash"
+  ];
+
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log("Đang thử model:", modelName);
+      return await callGeminiWithModel(message, modelName);
+    } catch (err) {
+      console.warn(`Model ${modelName} lỗi:`, err);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Không gọi được Gemini.");
+}
+
+async function callGeminiWithModel(message, modelName) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `
+Bạn là ScamCheck, công cụ giáo dục chống lừa đảo cho người lớn tuổi Việt Nam.
+
+Phân tích tin nhắn sau:
+"""${message}"""
+
+Yêu cầu:
+- Dùng tiếng Việt dễ hiểu.
+- Không bịa thông tin ngoài tin nhắn.
+- Nếu an toàn: risk = "An toàn", indicators = [], psychology = null.
+- Nếu nghi ngờ hoặc nguy hiểm: psychology phải có manipulation và advice.
+- indicators tối đa 4 mục.
+- actions đúng 3 mục.
+- quote nên là đoạn trích có thật trong tin nhắn.
+`
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          risk: {
+            type: "string",
+            enum: ["An toàn", "Nghi ngờ", "Nguy hiểm"]
+          },
+          indicators: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                quote: { type: "string" },
+                reason: { type: "string" }
+              },
+              required: ["quote", "reason"]
+            }
+          },
+          actions: {
+            type: "array",
+            items: { type: "string" }
+          },
+          psychology: {
+            nullable: true,
+            type: "object",
+            properties: {
+              manipulation: { type: "string" },
+              advice: { type: "string" }
+            },
+            required: ["manipulation", "advice"]
+          }
+        },
+        required: ["risk", "indicators", "actions", "psychology"]
+      }
+    }
+  };
+
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      action: "analyze",
-      message
-    }),
-    signal: AbortSignal.timeout(15000)
+    body: JSON.stringify(payload)
   });
 
   const raw = await res.text();
 
   if (!res.ok) {
-    throw new Error(`Worker lỗi ${res.status}: ${raw}`);
+    throw new Error(`Gemini API lỗi ${res.status} với model ${modelName}: ${raw}`);
   }
 
-  let data;
+  let apiData;
+  try {
+    apiData = JSON.parse(raw);
+  } catch {
+    throw new Error(`Gemini API trả response không phải JSON với model ${modelName}: ${raw}`);
+  }
+
+  const finishReason = apiData?.candidates?.[0]?.finishReason;
+  const text = apiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text || !text.trim()) {
+    throw new Error(`Gemini trả về rỗng với model ${modelName}. Finish reason: ${finishReason}. Raw: ${raw}`);
+  }
 
   try {
-    data = JSON.parse(raw);
+    return JSON.parse(text);
   } catch {
-    data = JSON.parse(extractJsonObject(raw));
+    return JSON.parse(extractJsonObject(text));
   }
-
-  if (data?.risk) return data;
-  if (data?.data?.risk) return data.data;
-  if (data?.result?.risk) return data.result;
-
-  throw new Error("Worker trả về JSON nhưng thiếu risk: " + raw);
 }
 
 function extractJsonObject(text) {
@@ -334,12 +425,13 @@ function extractJsonObject(text) {
   const firstBrace = cleaned.indexOf("{");
   const lastBrace = cleaned.lastIndexOf("}");
 
-  if (firstBrace === -1 || lastBrace <= firstBrace) {
-    throw new Error("Không tìm thấy JSON object trong text: " + cleaned);
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error("Không tìm thấy JSON object trong Gemini text: " + cleaned);
   }
 
   return cleaned.slice(firstBrace, lastBrace + 1);
 }
+
 // ==========================================
 // 6. RESPONSE NORMALIZATION & FALLBACKS
 // ==========================================
