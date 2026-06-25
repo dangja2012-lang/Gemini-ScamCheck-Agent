@@ -397,3 +397,261 @@ body.dark-mode #clear-history-btn {
 body.dark-mode #clear-history-btn:hover {
   background: #b91c1c;
 }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+main,
+footer,
+#result,
+#history-list,
+#library-grid {
+  max-width: 100%;
+  min-width: 0;
+}
+
+img,
+svg,
+pre,
+code {
+  max-width: 100%;
+}
+
+@media (max-width: 739px) {
+  body {
+    padding: 6px !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px !important;
+  }
+
+  .flex.items-center.justify-between.mb-3 {
+    gap: 10px;
+  }
+
+  #clear-history-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  #history-list button {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  #history-list button span {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .badge {
+    white-space: normal;
+    text-align: center;
+  }
+}
+/* FIX NGƯỜI ỨNG CỨU READABILITY IN DARK MODE */
+body.dark-mode .rescue-card {
+  background: #fff7f7 !important;
+  border-color: #fb7185 !important;
+}
+
+body.dark-mode .rescue-title {
+  color: #7f1d1d !important;
+}
+
+body.dark-mode .rescue-card p {
+  color: #450a0a !important;
+  opacity: 1 !important;
+}
+
+body.dark-mode .rescue-detail {
+  background: #ffffff !important;
+  color: #450a0a !important;
+  border-color: #fca5a5 !important;
+}
+
+body.dark-mode .rescue-detail h4,
+body.dark-mode .rescue-detail li {
+  color: #7f1d1d !important;
+  opacity: 1 !important;
+}
+
+body.dark-mode .hotline-item {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.dark-mode .hotline-item div {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+body.dark-mode .hotline-number {
+  color: #1d4ed8 !important;
+}
+.analyzer-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.analyzer-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-panel {
+  width: 310px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.history-header h3 {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #334155;
+}
+
+#clear-history-btn {
+  background: #dc2626;
+  color: white;
+  font-weight: 900;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.18);
+  transition: 0.2s;
+  white-space: nowrap;
+}
+
+#clear-history-btn:hover {
+  background: #b91c1c;
+}
+
+body.dark-mode .history-panel {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .history-header h3 {
+  color: #e2e8f0;
+}
+
+@media (max-width: 1100px) {
+  .analyzer-layout {
+    flex-direction: column;
+  }
+
+  .history-panel {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+}
+.app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 24px;
+  align-items: start;
+}
+
+.history-sidebar {
+  position: sticky;
+  top: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.history-header h3 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #334155;
+}
+
+#clear-history-btn {
+  background: #dc2626;
+  color: white;
+  font-weight: 900;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.18);
+  transition: 0.2s;
+  white-space: nowrap;
+}
+
+#clear-history-btn:hover {
+  background: #b91c1c;
+}
+
+body.dark-mode .history-sidebar {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .history-header h3 {
+  color: #e2e8f0;
+}
+
+@media (max-width: 1023px) {
+  .app-layout {
+    display: block;
+  }
+
+  .history-sidebar {
+    width: 100%;
+    position: static;
+    margin-top: 1.5rem;
+    max-height: none;
+  }
+}
+
+@media (max-width: 739px) {
+  .library-search-row {
+    flex-direction: column;
+  }
+}

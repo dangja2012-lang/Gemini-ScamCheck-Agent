@@ -193,6 +193,14 @@ function extractAllUrls(text) {
 
 // Sends short links to your Cloudflare Worker middleware wrapper
 async function resolveShortLink(shortUrl) {
+  if (
+    typeof PROXY_API_URL === "undefined" ||
+    !PROXY_API_URL ||
+    !PROXY_API_URL.startsWith("http")
+  ) {
+    return shortUrl;
+  }
+
   try {
     const res = await fetch(PROXY_API_URL, {
       method: "POST",
@@ -284,36 +292,40 @@ async function analyzeMessage() {
 
 async function callGemini(message) {
   if (
-    typeof GEMINI_API_KEY === "undefined" ||
-    !GEMINI_API_KEY ||
-    GEMINI_API_KEY.includes("DAN_API_KEY")
+    typeof GEMINI_API_KEYS === "undefined" ||
+    !Array.isArray(GEMINI_API_KEYS) ||
+    GEMINI_API_KEYS.length === 0
   ) {
-    throw new Error("Chưa cấu hình GEMINI_API_KEY trong config.js");
+    throw new Error("Chưa cấu hình GEMINI_API_KEYS trong config.js");
   }
 
   const modelsToTry = [
+    GEMINI_MODEL || "gemini-2.5-flash",
     "gemini-2.5-flash",
-    "gemini-flash-latest",
     "gemini-2.0-flash"
   ];
 
   let lastError = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      console.log("Đang thử model:", modelName);
-      return await callGeminiWithModel(message, modelName);
-    } catch (err) {
-      console.warn(`Model ${modelName} lỗi:`, err);
-      lastError = err;
+  for (const apiKey of GEMINI_API_KEYS) {
+    if (!apiKey || apiKey.includes("API_KEY")) continue;
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.log("Đang thử key + model:", modelName);
+        return await callGeminiWithModel(message, modelName, apiKey);
+      } catch (err) {
+        console.warn("Key/model lỗi:", modelName, err);
+        lastError = err;
+      }
     }
   }
 
-  throw lastError || new Error("Không gọi được Gemini.");
+  throw lastError || new Error("Không gọi được Gemini bằng bất kỳ API key nào.");
 }
 
-async function callGeminiWithModel(message, modelName) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+async function callGeminiWithModel(message, modelName, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const payload = {
     contents: [

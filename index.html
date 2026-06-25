@@ -3,108 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>ScamCheck - Công cụ kiểm tra tin nhắn lừa đảo</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./style.css" />
   <link rel="icon" type="image/png" href="./favicon.png" />
 </head>
 
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-between p-4 md:p-8">
-  <main class="max-w-3xl mx-auto w-full bg-white rounded-2xl shadow-xl p-5 md:p-6 border border-slate-100">
-    <div class="flex justify-end mb-4">
-      <button id="theme-toggle" onclick="toggleTheme()"
-    class="px-4 py-2 rounded-xl font-bold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition">
-    🌙 Dark
-      </button>
-    </div>
-    <h1 class="text-4xl md:text-5xl font-extrabold text-blue-700 tracking-tight text-center mb-2">ScamCheck</h1>
-    <p class="text-slate-600 text-center mb-6 text-base md:text-lg font-medium">
-      🕵️‍♂️ Thám tử kỹ thuật & 🧠 Cô tâm lý đồng hành bảo vệ gia đình
-    </p>
+<body class="bg-slate-50 text-slate-900 min-h-screen p-4 md:p-8">
 
-    <div class="flex gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200 mb-6">
-      <button id="tab-btn-analyzer" onclick="switchTab('analyzer')" class="tab-btn active-tab">
-        🔍 Phân Tích
-      </button>
-      <button id="tab-btn-library" onclick="switchTab('library')" class="tab-btn inactive-tab">
-        📚 Thư Viện Lừa Đảo
-      </button>
-    </div>
+  <div class="app-layout max-w-6xl mx-auto w-full">
 
-    <section id="tab-analyzer">
-      <div class="mb-4">
-        <span class="block text-sm font-semibold text-slate-500 mb-2">Thử nhanh bằng tin mẫu:</span>
-        <div class="flex flex-col gap-2 sm:flex-row">
-          <button onclick="fillSample(1)" class="sample-btn">🏦 Giả mạo Ngân hàng</button>
-          <button onclick="fillSample(2)" class="sample-btn">👮 Giả mạo Công an</button>
-          <button onclick="fillSample(3)" class="sample-btn">🎁 Trúng thưởng giả</button>
-        </div>
-      </div>
+    <main class="app-main w-full bg-white rounded-2xl shadow-xl p-5 md:p-6 border border-slate-100">
 
-      <textarea id="message"
-        class="w-full p-4 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none bg-slate-50 text-lg transition shadow-inner"
-        rows="6"
-        placeholder="Dán hoặc gõ nội dung tin nhắn nghi ngờ vào đây..."></textarea>
-
-      <button id="analyze-btn" onclick="analyzeMessage()"
-        class="w-full mt-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-4 px-6 rounded-xl text-xl shadow-md shadow-blue-200 transition duration-150">
-        🔍 Kiểm tra ngay
-      </button>
-
-      <div id="result" class="mt-6 hidden space-y-4"></div>
-
-      <div class="mt-8 pt-6 border-t border-slate-200">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-lg font-bold text-slate-700">
-            ⏳ Lịch sử kiểm tra gần đây
-          </h3>
-  <button
-    id="clear-history-btn"
-    onclick="clearHistory()"
-    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow transition"
-  >
-    🗑️ Xóa
-  </button>
-</div>
-        <div id="history-list" class="space-y-2 text-sm max-h-56 overflow-y-auto">
-          <p class="text-slate-400 italic">Chưa có dữ liệu kiểm tra.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="tab-library" class="hidden">
-      <h2 class="text-2xl md:text-3xl font-black text-slate-800">📚 Thư Viện Lừa Đảo</h2>
-      <p class="text-slate-500 text-base mb-4">
-        Bộ dữ liệu gồm nhiều nhóm lừa đảo. Tìm kiếm theo tên, mô tả, nội dung tin nhắn hoặc nhóm phân loại.
-      </p>
-
-      <div class="flex gap-2 mb-3">
-        <input id="library-search" oninput="handleFilterAndSearch()"
-          class="flex-1 p-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none bg-slate-50"
-          placeholder="Tìm: ngân hàng, vietcornbank, công an, giao hàng, OTP..." />
-
-        <button onclick="clearLibrarySearch()"
-          class="px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold border border-slate-200">
-          Xóa
+      <div class="flex justify-end mb-4">
+        <button
+          id="theme-toggle"
+          onclick="toggleTheme()"
+          class="px-4 py-2 rounded-xl font-bold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition"
+        >
+          🌙 Dark
         </button>
       </div>
 
-      <p id="library-count" class="text-sm text-slate-500 mb-4"></p>
+      <h1 class="text-4xl md:text-5xl font-extrabold text-blue-700 tracking-tight text-center mb-2">
+        ScamCheck
+      </h1>
 
-      <div class="flex flex-wrap gap-2 mb-4">
-        <button onclick="filterCategory('all', this)" class="lib-filter-btn active-filter">Tất cả</button>
-        <button onclick="filterCategory('bank', this)" class="lib-filter-btn">🏦 Ngân hàng</button>
-        <button onclick="filterCategory('police', this)" class="lib-filter-btn">👮 Công an</button>
-        <button onclick="filterCategory('gift', this)" class="lib-filter-btn">🎁 Trúng thưởng</button>
-        <button onclick="filterCategory('delivery', this)" class="lib-filter-btn">📦 Giao hàng</button>
+      <p class="text-slate-600 text-center mb-6 text-base md:text-lg font-medium">
+        🕵️‍♂️ Thám tử kỹ thuật & 🧠 Cô tâm lý đồng hành bảo vệ gia đình
+      </p>
+
+      <div class="flex gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200 mb-6">
+        <button id="tab-btn-analyzer" onclick="switchTab('analyzer')" class="tab-btn active-tab">
+          🔍 Phân Tích
+        </button>
+
+        <button id="tab-btn-library" onclick="switchTab('library')" class="tab-btn inactive-tab">
+          📚 Thư Viện Lừa Đảo
+        </button>
       </div>
 
-      <div id="library-grid" class="space-y-3"></div>
-    </section>
-  </main>
+      <section id="tab-analyzer">
+        <div class="mb-4">
+          <span class="block text-sm font-semibold text-slate-500 mb-2">
+            Thử nhanh bằng tin mẫu:
+          </span>
 
-  <footer class="max-w-3xl mx-auto w-full mt-8 text-center text-slate-500 text-sm border-t border-slate-200 pt-4 px-4 leading-relaxed">
-    <strong>Lưu ý pháp lý:</strong> ScamCheck là công cụ giáo dục do nhóm học viên phát triển. Đánh giá của ứng dụng không thay thế cảnh báo chính thức từ ngân hàng hoặc cơ quan chức năng.
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <button onclick="fillSample(1)" class="sample-btn">🏦 Giả mạo Ngân hàng</button>
+            <button onclick="fillSample(2)" class="sample-btn">👮 Giả mạo Công an</button>
+            <button onclick="fillSample(3)" class="sample-btn">🎁 Trúng thưởng giả</button>
+          </div>
+        </div>
+
+        <textarea
+          id="message"
+          class="w-full p-4 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none bg-slate-50 text-lg transition shadow-inner"
+          rows="6"
+          placeholder="Dán hoặc gõ nội dung tin nhắn nghi ngờ vào đây..."
+        ></textarea>
+
+        <button
+          id="analyze-btn"
+          onclick="analyzeMessage()"
+          class="w-full mt-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold py-4 px-6 rounded-xl text-xl shadow-md shadow-blue-200 transition duration-150"
+        >
+          🔍 Kiểm tra ngay
+        </button>
+
+        <div id="result" class="mt-6 hidden space-y-4"></div>
+      </section>
+
+      <section id="tab-library" class="hidden">
+        <h2 class="text-2xl md:text-3xl font-black text-slate-800">
+          📚 Thư Viện Lừa Đảo
+        </h2>
+
+        <p class="text-slate-500 text-base mb-4">
+          Bộ dữ liệu gồm nhiều nhóm lừa đảo. Tìm kiếm theo tên, mô tả, nội dung tin nhắn hoặc nhóm phân loại.
+        </p>
+
+        <div class="flex gap-2 mb-3 library-search-row">
+          <input
+            id="library-search"
+            oninput="handleFilterAndSearch()"
+            class="flex-1 p-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none bg-slate-50"
+            placeholder="Tìm: ngân hàng, vietcornbank, công an, giao hàng, OTP..."
+          />
+
+          <button
+            onclick="clearLibrarySearch()"
+            class="px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold border border-slate-200"
+          >
+            Xóa
+          </button>
+        </div>
+
+        <p id="library-count" class="text-sm text-slate-500 mb-4"></p>
+
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="filterCategory('all', this)" class="lib-filter-btn active-filter">Tất cả</button>
+          <button onclick="filterCategory('bank', this)" class="lib-filter-btn">🏦 Ngân hàng</button>
+          <button onclick="filterCategory('police', this)" class="lib-filter-btn">👮 Công an</button>
+          <button onclick="filterCategory('gift', this)" class="lib-filter-btn">🎁 Trúng thưởng</button>
+          <button onclick="filterCategory('delivery', this)" class="lib-filter-btn">📦 Giao hàng</button>
+        </div>
+
+        <div id="library-grid" class="space-y-3"></div>
+      </section>
+
+    </main>
+
+    <aside class="history-sidebar">
+      <div class="history-header">
+        <h3>⏳ Lịch sử kiểm tra</h3>
+
+        <button id="clear-history-btn" onclick="clearHistory()">
+          🗑️ Xóa
+        </button>
+      </div>
+
+      <div id="history-list" class="space-y-2 text-sm">
+        <p class="text-slate-400 italic">Chưa có dữ liệu kiểm tra.</p>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="max-w-6xl mx-auto w-full mt-8 text-center text-slate-500 text-sm border-t border-slate-200 pt-4 px-4 leading-relaxed">
+    <strong>Lưu ý pháp lý:</strong> ScamCheck là công cụ giáo dục do nhóm học viên phát triển.
+    Đánh giá của ứng dụng không thay thế cảnh báo chính thức từ ngân hàng hoặc cơ quan chức năng.
   </footer>
 
   <script src="./config.js"></script>
