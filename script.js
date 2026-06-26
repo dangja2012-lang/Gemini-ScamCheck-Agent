@@ -498,14 +498,22 @@ function forceDangerIfObviousScam(data, originalMsg) {
     { word: "trung thuong", reason: "Tin nhắn báo trúng thưởng bất thường." },
     { word: "nop truoc", reason: "Tin nhắn yêu cầu nộp phí trước." },
     { word: "phi van chuyen", reason: "Yêu cầu đóng phí vận chuyển để nhận thưởng là dấu hiệu lừa đảo." },
-    { word: "http://", reason: "Tin nhắn chứa đường link không an toàn." },
-    { word: "https://", reason: "Tin nhắn chứa đường link cần kiểm chứng." },
     { word: ".top", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
     { word: ".cc", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
     { word: ".info", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
-    { word: ".club", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." }
+    { word: ".club", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
+    { word: "bit.ly", reason: "Tin nhắn dùng link rút gọn nên cần kiểm tra đích đến trước khi bấm." },
   ];
+const dangerousMatchCount = matched.filter(rule =>
+  !["bit.ly", "tinyurl.com", "goo.gl", "t.co"].includes(rule.word)
+).length;
 
+if (dangerousMatchCount === 0 && matched.some(rule => rule.word === "bit.ly")) {
+  return {
+    ...data,
+    risk: data.risk === "An toàn" ? "Nghi ngờ" : data.risk
+  };
+}
   const matched = dangerRules.filter(rule => clean.includes(rule.word));
 
   if (matched.length === 0) return data;
