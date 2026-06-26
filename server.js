@@ -9,17 +9,21 @@ app.use(cors());
 app.use(express.json());
 
 const GEMINI_KEYS = [
-  process.env.API_KEY_1,
-  process.env.API_KEY_2,
-  process.env.API_KEY_3,
-  process.env.API_KEY_4,
-  process.env.API_KEY_5
+  process.env.API_KEY_1?.trim(),
+  process.env.API_KEY_2?.trim(),
+  process.env.API_KEY_3?.trim(),
+  process.env.API_KEY_4?.trim(),
+  process.env.API_KEY_5?.trim()
 ].filter(Boolean);
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 
 app.post("/analyze", async (req, res) => {
-  console.log("Analyze request received");
+  console.log("Loaded keys:", GEMINI_KEYS.length);
+
+  GEMINI_KEYS.forEach((key, i) => {
+    console.log(`Key ${i + 1}:`, key.substring(0, 10) + "...");
+  });
 
   const message = req.body.message;
 

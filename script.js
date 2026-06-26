@@ -291,7 +291,7 @@ async function analyzeMessage() {
 // ==========================================
 
 async function callGemini(message) {
-  const res = await fetch("http://localhost:3000/analyze", {
+  const res = await fetch("https://gemini-scamcheck-agent-2.onrender.com/analyze", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -299,7 +299,14 @@ async function callGemini(message) {
     body: JSON.stringify({ message })
   });
 
-  const data = await res.json();
+  const text = await res.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Backend returned non-JSON: " + text.slice(0, 120));
+  }
 
   if (!res.ok) {
     throw new Error(data.error || "Backend error");
