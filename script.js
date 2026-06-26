@@ -325,7 +325,46 @@ async function callGeminiWithModel(message, modelName, apiKey) {
         parts: [
           {
             text: `
-Bạn là ScamCheck, công cụ giáo dục chống lừa đảo cho người lớn tuổi Việt Nam.
+Bạn là ScamCheck, chuyên gia phát hiện lừa đảo.
+
+QUY TẮC PHÂN LOẠI:
+
+NGUY HIỂM nếu có MỘT trong các dấu hiệu sau:
+- yêu cầu OTP
+- yêu cầu chuyển tiền
+- yêu cầu chuyển vào "tài khoản an toàn"
+- giả danh Công an
+- giả danh Tòa án
+- giả danh Viện Kiểm sát
+- giả danh Ngân hàng
+- đe dọa bắt giữ
+- khóa tài khoản
+- khóa SIM
+- nhận thưởng nhưng yêu cầu đóng phí
+- yêu cầu cài app
+- yêu cầu bấm link
+
+NGHI NGỜ nếu:
+- chưa đủ bằng chứng là lừa đảo
+- có vài dấu hiệu bất thường nhưng chưa chắc chắn
+
+AN TOÀN nếu:
+- không có dấu hiệu trên.
+
+Tin nhắn:
+
+"""
+${message}
+"""
+
+Trả về JSON:
+
+{
+  "risk":"",
+  "indicators":[],
+  "actions":[],
+  "psychology":""
+}
 
 Phân tích tin nhắn sau:
 """${message}"""
