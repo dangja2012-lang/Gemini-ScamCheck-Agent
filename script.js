@@ -859,7 +859,7 @@ const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(origina
       <h4 class="text-sm font-bold text-slate-500 mb-2">Nội dung tin nhắn gốc:</h4>
       <p class="text-lg whitespace-pre-wrap leading-relaxed text-slate-800">${highlightedMsg}</p>
     </div>
-
+${linkCardHtml}
     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
       <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
         <span class="text-2xl">🕵️‍♂️</span>
