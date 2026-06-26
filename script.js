@@ -528,6 +528,79 @@ function forceDangerIfObviousScam(data, originalMsg) {
     }
   };
 }
+function analyzeLinksInMessage(originalMsg) {
+  const urls = extractAllUrls(originalMsg);
+
+  const fakeDomains = [];
+  const shortLinks = [];
+
+  const shorteners = [
+    "bit.ly", "tinyurl.com", "goo.gl", "t.co", "shorturl.at",
+    "cutt.ly", "rebrand.ly", "is.gd", "s.id"
+  ];
+
+  const officialBrands = [
+    {
+      brand: "Vietcombank",
+      official: "vietcombank.com.vn",
+      suspiciousWords: ["vietcornbank", "vietcombank-login", "vcb-login", "vietcombank-xacthuc"]
+    },
+    {
+      brand: "BIDV",
+      official: "bidv.com.vn",
+      suspiciousWords: ["bidv-khuyenmai", "bidv-login", "bidv-xacthuc"]
+    },
+    {
+      brand: "Agribank",
+      official: "agribank.com.vn",
+      suspiciousWords: ["agribank-xacthuc", "agribank-login", "agribank-update"]
+    },
+    {
+      brand: "VNeID",
+      official: "vneid.gov.vn",
+      suspiciousWords: ["vneid-phongso", "vneid-update", "vneid-login"]
+    }
+  ];
+
+  urls.forEach(url => {
+    let hostname = "";
+
+    try {
+      hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+      return;
+    }
+
+    if (shorteners.includes(hostname)) {
+      shortLinks.push({
+        url,
+        domain: hostname,
+        reason: "Đây là đường dẫn rút gọn, người dùng không nhìn thấy website thật trước khi bấm."
+      });
+    }
+
+    officialBrands.forEach(item => {
+      const looksFake =
+        item.suspiciousWords.some(word => hostname.includes(word)) ||
+        (
+          hostname.includes(item.brand.toLowerCase()) &&
+          !hostname.endsWith(item.official)
+        );
+
+      if (looksFake) {
+        fakeDomains.push({
+          url,
+          domain: hostname,
+          brand: item.brand,
+          official: item.official,
+          reason: `Tên miền giống ${item.brand} nhưng không phải tên miền chính thức ${item.official}.`
+        });
+      }
+    });
+  });
+
+  return { urls, shortLinks, fakeDomains };
+}
 function normalizeAiData(data, originalMsg) {
   const allowedRisk = ["An toàn", "Nghi ngờ", "Nguy hiểm"];
   const risk = allowedRisk.includes(data?.risk) ? data.risk : "Nghi ngờ";
