@@ -479,7 +479,6 @@ function extractJsonObject(text) {
 // 6. RESPONSE NORMALIZATION & FALLBACKS
 // ==========================================
 function forceDangerIfObviousScam(data, originalMsg) {
-
   const clean = String(originalMsg || "")
     .toLowerCase()
     .normalize("NFD")
@@ -505,39 +504,66 @@ function forceDangerIfObviousScam(data, originalMsg) {
     ".club"
   ];
 
-  const matched = dangerRules.filter(rule => clean.includes(rule));
+  const safeSchoolWords = [
+    "thay",
+    "co giao",
+    "tin hoc",
+    "tai lieu",
+    "on thi",
+    "cuoi ki",
+    "lop",
+    "11a3",
+    "google drive",
+    "drive.google.com",
+    "docs.google.com"
+  ];
 
-  const hasBitly =
+  const hasDanger = dangerRules.some(rule => clean.includes(rule));
+
+  const hasShortLink =
     clean.includes("bit.ly") ||
     clean.includes("tinyurl.com") ||
     clean.includes("goo.gl") ||
     clean.includes("t.co");
 
-  // No danger keywords
-  if (matched.length === 0) {
+  const looksLikeSchoolMessage = safeSchoolWords.some(word =>
+    clean.includes(word)
+  );
 
-      // only short link
-      if (hasBitly) {
-
-          // keep Dangerous if Gemini already decided so
-          if (data.risk === "Nguy hiểm")
-              return data;
-
-          return {
-              ...data,
-              risk: "Nghi ngờ"
-          };
-      }
-
-      return data;
-  }
-
-  // obvious scam
-  return {
+  if (hasDanger) {
+    return {
       ...data,
       risk: "Nguy hiểm"
-  };
+    };
+  }
 
+  if (hasShortLink && looksLikeSchoolMessage) {
+    return {
+      ...data,
+      risk: "An toàn",
+      indicators: [
+        {
+          quote: "bit.ly / tài liệu ôn thi",
+          reason: "Tin nhắn có link rút gọn nhưng ngữ cảnh là chia sẻ tài liệu học tập, không có yêu cầu OTP, chuyển tiền hoặc thông tin nhạy cảm."
+        }
+      ],
+      actions: [
+        "Chỉ mở nếu người gửi đúng là thầy/cô hoặc nguồn quen biết.",
+        "Không nhập mật khẩu, OTP hoặc thông tin cá nhân nếu trang yêu cầu.",
+        "Kiểm tra đích đến của link trước khi tải tài liệu."
+      ],
+      psychology: null
+    };
+  }
+
+  if (hasShortLink) {
+    return {
+      ...data,
+      risk: data.risk === "Nguy hiểm" ? "Nguy hiểm" : "Nghi ngờ"
+    };
+  }
+
+  return data;
 }
 function analyzeLinksInMessage(originalMsg) {
   const urls = extractAllUrls(originalMsg);
