@@ -759,6 +759,52 @@ function displayResult(originalMsg, data) {
     : "";
 
   const highlightedMsg = highlightQuotes(originalMsg, data.indicators || []);
+  const linkAnalysis = analyzeLinksInMessage(originalMsg);
+
+const linkCardHtml = linkAnalysis.urls.length
+  ? `
+    <div class="bg-orange-50 p-5 rounded-xl border border-orange-300 shadow-sm space-y-3">
+      <h3 class="text-xl font-black text-orange-800">🔗 Soi đường dẫn</h3>
+
+      <div>
+        <h4 class="font-bold text-orange-900">Các đường dẫn tìm thấy:</h4>
+        <ul class="list-disc pl-5 text-orange-950">
+          ${linkAnalysis.urls.map(url => `<li>${escapeHtml(url)}</li>`).join("")}
+        </ul>
+      </div>
+
+      ${
+        linkAnalysis.shortLinks.length
+          ? `
+            <div class="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+              <h4 class="font-black text-yellow-900">⚠️ Link rút gọn phát hiện</h4>
+              ${linkAnalysis.shortLinks.map(item => `
+                <p class="text-yellow-950">
+                  <strong>${escapeHtml(item.domain)}</strong>: ${escapeHtml(item.reason)}
+                </p>
+              `).join("")}
+            </div>
+          `
+          : ""
+      }
+
+      ${
+        linkAnalysis.fakeDomains.length
+          ? `
+            <div class="bg-red-100 border border-red-300 rounded-lg p-3">
+              <h4 class="font-black text-red-800">🚨 Tên miền giả mạo phát hiện</h4>
+              ${linkAnalysis.fakeDomains.map(item => `
+                <p class="text-red-950">
+                  <strong>${escapeHtml(item.domain)}</strong>: ${escapeHtml(item.reason)}
+                </p>
+              `).join("")}
+            </div>
+          `
+          : ""
+      }
+    </div>
+  `
+  : "";
   latestAnalyzedMessage = originalMsg;
 const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(originalMsg, data);;
 
