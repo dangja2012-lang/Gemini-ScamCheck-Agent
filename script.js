@@ -479,62 +479,65 @@ function extractJsonObject(text) {
 // 6. RESPONSE NORMALIZATION & FALLBACKS
 // ==========================================
 function forceDangerIfObviousScam(data, originalMsg) {
+
   const clean = String(originalMsg || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
   const dangerRules = [
-    { word: "otp", reason: "Tin nhắn yêu cầu mã OTP/mã xác thực." },
-    { word: "ma otp", reason: "Tin nhắn yêu cầu mã OTP/mã xác thực." },
-    { word: "ma xac thuc", reason: "Tin nhắn yêu cầu mã xác thực." },
-    { word: "tai khoan an toan", reason: "Cụm từ “tài khoản an toàn” là dấu hiệu lừa đảo phổ biến." },
-    { word: "cong an", reason: "Tin nhắn mạo danh cơ quan công an." },
-    { word: "bo cong an", reason: "Tin nhắn mạo danh Bộ Công An." },
-    { word: "bat giam", reason: "Tin nhắn dùng lời đe dọa bắt giữ để gây áp lực." },
-    { word: "ma tuy", reason: "Tin nhắn gán người nhận với vụ án nghiêm trọng để hù dọa." },
-    { word: "chuyen khoan", reason: "Tin nhắn có yêu cầu chuyển khoản." },
-    { word: "rut het tien", reason: "Tin nhắn yêu cầu rút/chuyển toàn bộ tiền." },
-    { word: "trung thuong", reason: "Tin nhắn báo trúng thưởng bất thường." },
-    { word: "nop truoc", reason: "Tin nhắn yêu cầu nộp phí trước." },
-    { word: "phi van chuyen", reason: "Yêu cầu đóng phí vận chuyển để nhận thưởng là dấu hiệu lừa đảo." },
-    { word: ".top", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
-    { word: ".cc", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
-    { word: ".info", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
-    { word: ".club", reason: "Tên miền lạ thường xuất hiện trong lừa đảo." },
-    { word: "bit.ly", reason: "Tin nhắn dùng link rút gọn nên cần kiểm tra đích đến trước khi bấm." },
+    "otp",
+    "ma otp",
+    "ma xac thuc",
+    "tai khoan an toan",
+    "cong an",
+    "bo cong an",
+    "bat giam",
+    "ma tuy",
+    "chuyen khoan",
+    "rut het tien",
+    "trung thuong",
+    "nop truoc",
+    "phi van chuyen",
+    ".top",
+    ".cc",
+    ".info",
+    ".club"
   ];
-const dangerousMatchCount = matched.filter(rule =>
-  !["bit.ly", "tinyurl.com", "goo.gl", "t.co"].includes(rule.word)
-).length;
 
-if (dangerousMatchCount === 0 && matched.some(rule => rule.word === "bit.ly")) {
+  const matched = dangerRules.filter(rule => clean.includes(rule));
+
+  const hasBitly =
+    clean.includes("bit.ly") ||
+    clean.includes("tinyurl.com") ||
+    clean.includes("goo.gl") ||
+    clean.includes("t.co");
+
+  // No danger keywords
+  if (matched.length === 0) {
+
+      // only short link
+      if (hasBitly) {
+
+          // keep Dangerous if Gemini already decided so
+          if (data.risk === "Nguy hiểm")
+              return data;
+
+          return {
+              ...data,
+              risk: "Nghi ngờ"
+          };
+      }
+
+      return data;
+  }
+
+  // obvious scam
   return {
-    ...data,
-    risk: data.risk === "An toàn" ? "Nghi ngờ" : data.risk
+      ...data,
+      risk: "Nguy hiểm"
   };
-}
-  const matched = dangerRules.filter(rule => clean.includes(rule.word));
 
-  if (matched.length === 0) return data;
-
-  return {
-    ...data,
-    risk: "Nguy hiểm",
-    indicators: matched.slice(0, 4).map(rule => ({
-      quote: rule.word,
-      reason: rule.reason
-    })),
-    actions: [
-      "Không bấm vào đường link hoặc làm theo yêu cầu trong tin nhắn.",
-      "Không cung cấp OTP, mật khẩu, thông tin tài khoản hoặc chuyển tiền.",
-      "Liên hệ tổng đài chính thức/người thân để kiểm chứng trước khi làm gì."
-    ],
-    psychology: {
-      manipulation: "Tin nhắn có dấu hiệu tạo áp lực, hù dọa hoặc dụ lợi ích để khiến người nhận hành động vội.",
-      advice: "Hãy bình tĩnh, dừng thao tác và kiểm tra qua kênh chính thức. Không làm theo yêu cầu trong tin nhắn."
-    }
-  };
 }
 function analyzeLinksInMessage(originalMsg) {
   const urls = extractAllUrls(originalMsg);
