@@ -19,14 +19,23 @@ const GEMINI_KEYS = [
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 app.post("/analyze", async (req, res) => {
+  console.log("Analyze request received");
+
   const message = req.body.message;
 
   if (!message) {
     return res.status(400).json({ error: "Missing message" });
   }
 
-  for (const apiKey of GEMINI_KEYS) {
+  console.log("Keys loaded:", GEMINI_KEYS.length);
+  console.log("Model:", GEMINI_MODEL);
+
+  for (let i = 0; i < GEMINI_KEYS.length; i++) {
+    const apiKey = GEMINI_KEYS[i];
+
     try {
+      console.log(`Trying key ${i + 1}`);
+
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
       const response = await fetch(url, {
@@ -45,9 +54,9 @@ Bạn là ScamCheck, công cụ giáo dục chống lừa đảo.
 Phân tích tin nhắn:
 """${message}"""
 
-Trả về JSON:
+Chỉ trả về JSON hợp lệ:
 {
-  "risk": "An toàn" hoặc "Nghi ngờ" hoặc "Nguy hiểm",
+  "risk": "An toàn",
   "indicators": [],
   "actions": [],
   "psychology": null
@@ -64,24 +73,37 @@ Trả về JSON:
         })
       });
 
-      if (!response.ok) continue;
+      const raw = await response.text();
 
-      const data = await response.json();
+      if (!response.ok) {
+        console.log(`Gemini key ${i + 1} failed:`, response.status, raw);
+        continue;
+      }
+
+      console.log(`Gemini key ${i + 1} worked`);
+
+      const data = JSON.parse(raw);
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       return res.json(JSON.parse(text));
     } catch (err) {
-      console.log("Key failed, trying next...");
+      console.log(`Key ${i + 1} crashed:`, err.message);
     }
   }
 
-  res.status(500).json({ error: "All API keys failed" });
+  return res.status(500).json({
+    error: "All API keys failed",
+    keysLoaded: GEMINI_KEYS.length,
+    model: GEMINI_MODEL
+  });
 });
 
 app.get("/", (req, res) => {
   res.send("ScamCheck backend is running");
 });
 
-app.listen(3000, () => {
-  console.log("Backend running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Backend running on port ${PORT}`);
 });
