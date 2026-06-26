@@ -1212,16 +1212,3 @@ function clearHistory() {
 
   alert("✅ Đã xóa toàn bộ lịch sử kiểm tra.");
 }
-const lower = message.toLowerCase();
-
-if (
-    lower.includes("otp") ||
-    lower.includes("tài khoản an toàn") ||
-    lower.includes("công an") ||
-    lower.includes("viện kiểm sát") ||
-    lower.includes("bắt giữ") ||
-    lower.includes("trúng thưởng") ||
-    lower.includes("đóng phí")
-){
-    // Force danger
-}
