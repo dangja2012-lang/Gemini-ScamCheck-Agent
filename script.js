@@ -480,64 +480,6 @@ function extractJsonObject(text) {
 // ==========================================
 // 6. RESPONSE NORMALIZATION & FALLBACKS
 // ==========================================
-function forceDangerIfObviousScam(data, originalMsg) {
-  const clean = String(originalMsg || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  const dangerRules = [
-    "otp",
-    "ma otp",
-    "ma xac thuc",
-    "tai khoan an toan",
-    "cong an",
-    "bo cong an",
-    "bat giam",
-    "ma tuy",
-    "chuyen khoan",
-    "rut het tien",
-    "trung thuong",
-    "nop truoc",
-    "phi van chuyen",
-    ".top",
-    ".cc",
-    ".info",
-    ".club"
-  ];
-
-  const safeSchoolWords = [
-    "thay",
-    "co giao",
-    "tin hoc",
-    "tai lieu",
-    "on thi",
-    "cuoi ki",
-    "lop",
-    "11a3",
-    "google drive",
-    "drive.google.com",
-    "docs.google.com"
-  ];
-
-  const hasDanger = dangerRules.some(rule => clean.includes(rule));
-
-  const hasShortLink =
-    clean.includes("bit.ly") ||
-    clean.includes("tinyurl.com") ||
-    clean.includes("goo.gl") ||
-    clean.includes("t.co");
-
-  const looksLikeSchoolMessage = safeSchoolWords.some(word =>
-    clean.includes(word)
-  );
-
-  if (hasDanger) {
-    return {
-      ...data,
-      risk: "Nguy hiểm"
-    };
-  }
 
   if (hasShortLink && looksLikeSchoolMessage) {
     return {
