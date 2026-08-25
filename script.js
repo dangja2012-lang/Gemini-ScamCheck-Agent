@@ -277,18 +277,27 @@ async function analyzeMessage() {
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
   } catch (err) {
-    console.error("Gemini error:", err);
+  console.error("ScamCheck analysis error:", err);
 
-    const fallback = localFallbackAnalysis(msg);
-    fallback.notice = "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
-    saveToHistory(msg, fallback);
-    displayResult(msg, fallback);
-  } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.innerText = "🔍 Kiểm tra ngay";
-  }
+  resultDiv.innerHTML = `
+    <div class="bg-red-50 border-2 border-red-300 rounded-xl p-5">
+      <h3 class="text-xl font-black text-red-800">
+        ⚠️ Không thể hoàn thành phân tích
+      </h3>
+
+      <p class="text-red-700 mt-2">
+        ScamCheck chưa nhận được kết quả từ hệ thống AI.
+        Vui lòng thử lại sau.
+      </p>
+
+      <p class="text-xs text-red-500 mt-3">
+        ${escapeHtml(err.message || "Unknown error")}
+      </p>
+    </div>
+  `;
+
+  return;
 }
-
 // ==========================================
 // 5. LLM INTEGRATION LAYER
 // ==========================================
