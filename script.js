@@ -269,8 +269,10 @@ async function analyzeMessage() {
 
     // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
-    let parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
-parsedData = forceDangerIfObviousScam(parsedData, completelyUnshortenedMsg);
+   const parsedData = normalizeAiData(
+  aiData,
+  completelyUnshortenedMsg
+);
 
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
