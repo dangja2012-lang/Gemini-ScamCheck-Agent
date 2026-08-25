@@ -578,64 +578,104 @@ function analyzeLinksInMessage(originalMsg) {
 
   return { urls, shortLinks, fakeDomains };
 }
-function normalizeAiData(data, originalMsg) {
-  const allowedRisk = ["An toàn", "Nghi ngờ", "Nguy hiểm"];
-  const risk = allowedRisk.includes(data?.risk) ? data.risk : "Nghi ngờ";
-
-  let indicators = Array.isArray(data?.indicators) ? data.indicators : [];
-
-  indicators = indicators
-    .slice(0, 4)
-    .filter(item => item && typeof item === "object")
-    .map(item => ({
-      quote: typeof item.quote === "string" ? item.quote : "",
-      reason: typeof item.reason === "string" ? item.reason : "Dấu hiệu cần kiểm chứng thêm."
-    }));
-
-  if (risk !== "An toàn" && indicators.length === 0) {
-    indicators.push({
-      quote: originalMsg.slice(0, 40),
-      reason: "Tin nhắn có dấu hiệu bất thường cần kiểm chứng."
-    });
-  }
-
-  let actions = Array.isArray(data?.actions)
-    ? data.actions.filter(action => typeof action === "string" && action.trim())
-    : [];
-
-  actions = actions.slice(0, 3);
-
-  const defaultActions = [
-    "Không bấm vào đường link hoặc tệp lạ.",
-    "Không cung cấp OTP, mật khẩu, số tài khoản hoặc thông tin cá nhân.",
-    "Gọi tổng đài chính thức hoặc hỏi người thân trước khi làm theo."
+function normalizeAiData(data) {
+  const allowedRisk = [
+    "An toàn",
+    "Nghi ngờ",
+    "Nguy hiểm"
   ];
 
-  while (actions.length < 3) {
-    actions.push(defaultActions[actions.length]);
-  }
+  const risk = allowedRisk.includes(data?.risk)
+    ? data.risk
+    : "Nghi ngờ";
+
+  const indicators =
+    Array.isArray(data?.indicators)
+      ? data.indicators
+          .filter(x => x && typeof x === "object")
+          .slice(0, 4)
+          .map(x => ({
+            quote: String(x.quote || ""),
+            reason: String(x.reason || ""),
+            severity:
+              ["low", "medium", "high"].includes(
+                x.severity
+              )
+                ? x.severity
+                : "medium"
+          }))
+      : [];
 
   let psychology = null;
 
-  if (risk !== "An toàn") {
+  if (
+    risk !== "An toàn" &&
+    data?.psychology
+  ) {
     psychology = {
-      manipulation:
-        typeof data?.psychology?.manipulation === "string" && data.psychology.manipulation.trim()
-          ? data.psychology.manipulation
-          : "Kẻ xấu có thể đang tạo áp lực tâm lý để bác hành động vội.",
-      advice:
-        typeof data?.psychology?.advice === "string" && data.psychology.advice.trim()
-          ? data.psychology.advice
-          : "Bác cứ bình tĩnh, mình kiểm tra trước khi làm theo là rất đúng."
+      manipulation: String(
+        data.psychology.manipulation || ""
+      ),
+      advice: String(
+        data.psychology.advice || ""
+      )
     };
   }
 
+  const rescue = {
+    beforeAction:
+      Array.isArray(
+        data?.rescue?.beforeAction
+      )
+        ? data.rescue.beforeAction
+        : [],
+
+    clicked:
+      Array.isArray(
+        data?.rescue?.clicked
+      )
+        ? data.rescue.clicked
+        : [],
+
+    transferred:
+      Array.isArray(
+        data?.rescue?.transferred
+      )
+        ? data.rescue.transferred
+        : [],
+
+    otp:
+      Array.isArray(
+        data?.rescue?.otp
+      )
+        ? data.rescue.otp
+        : []
+  };
+
   return {
     risk,
+
+    riskScore:
+      Number.isFinite(Number(data?.riskScore))
+        ? Number(data.riskScore)
+        : null,
+
+    summary:
+      String(data?.summary || ""),
+
     indicators,
-    actions,
+
     psychology,
-    source: "Gemini AI"
+
+    rescue,
+
+    links:
+      Array.isArray(data?.links)
+        ? data.links
+        : [],
+
+    source:
+      data?.source || "Gemini AI"
   };
 }
 
@@ -786,14 +826,45 @@ const linkCardHtml = linkAnalysis.urls.length
 const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(originalMsg, data);;
 
   const indicatorsHtml =
-    data.indicators && data.indicators.length
-      ? data.indicators
-          .map(
-            item =>
-              `<li><strong class="text-slate-800">"${escapeHtml(item.quote || "dấu hiệu")}"</strong>: ${escapeHtml(item.reason)}</li>`
-          )
-          .join("")
-      : `<li>Không phát hiện dấu hiệu kỹ thuật nguy hiểm rõ ràng.</li>`;
+   const indicatorsHtml =
+  data.indicators?.length
+    ? data.indicators
+        .map(item => {
+          const severity =
+            item.severity === "high"
+              ? "🚨 Cao"
+              : item.severity === "medium"
+              ? "⚠️ Trung bình"
+              : "ℹ️ Thấp";
+
+          return `
+            <li class="indicator-item">
+              <div>
+                <strong>
+                  "${escapeHtml(
+                    item.quote
+                  )}"
+                </strong>
+
+                <span class="severity-badge">
+                  ${severity}
+                </span>
+              </div>
+
+              <p>
+                ${escapeHtml(
+                  item.reason
+                )}
+              </p>
+            </li>
+          `;
+        })
+        .join("")
+    : `
+      <li>
+        Gemini chưa phát hiện bằng chứng đáng kể.
+      </li>
+    `;
 
   const actionsHtml = (data.actions || [])
     .map(action => `<li>${escapeHtml(action)}</li>`)
@@ -857,6 +928,8 @@ ${linkCardHtml}
    ${psychologyHtml}
    ${rescueSection}
   `;
+  window.currentScamRescue =
+  data.rescue || {};
 }
 
 function highlightQuotes(text, indicators) {
@@ -1063,61 +1136,101 @@ function escapeHtml(value) {
   }[char]));
 }
 function buildRescueSection(originalMsg, data) {
+  const rescue = data.rescue || {};
+
   return `
     <div class="rescue-card">
-      <div class="rescue-title">🚨 Người ứng cứu</div>
-      <p class="text-slate-700 text-base leading-relaxed">
-        Nếu người dùng đã lỡ tương tác với tin nhắn này, hãy chọn tình huống gần đúng nhất để xem bước xử lý nhanh.
+
+      <div class="rescue-title">
+        🚨 Người ứng cứu
+      </div>
+
+      <p class="text-slate-700 text-base leading-relaxed mb-4">
+        Gemini đã tạo hướng xử lý dựa trên chính nội dung tin nhắn này.
       </p>
 
       <div class="rescue-option-grid">
-        <button class="rescue-btn" onclick="showRescuePlan('none')">
+
+        <button
+          class="rescue-btn"
+          onclick="showRescuePlan('beforeAction')"
+        >
           ✅ Chưa làm gì
         </button>
 
-        <button class="rescue-btn" onclick="showRescuePlan('clicked')">
-          🔗 Đã bấm vào đường dẫn
+        <button
+          class="rescue-btn"
+          onclick="showRescuePlan('clicked')"
+        >
+          🔗 Đã bấm link
         </button>
 
-        <button class="rescue-btn" onclick="showRescuePlan('transferred')">
-          💸 Đã chuyển khoản
+        <button
+          class="rescue-btn"
+          onclick="showRescuePlan('transferred')"
+        >
+          💸 Đã chuyển tiền
         </button>
 
-        <button class="rescue-btn" onclick="showRescuePlan('otp')">
-          🔐 Đã cung cấp mã xác thực / OTP
+        <button
+          class="rescue-btn"
+          onclick="showRescuePlan('otp')"
+        >
+          🔐 Đã đưa OTP
         </button>
+
       </div>
 
-      <div id="rescue-detail" class="rescue-detail hidden"></div>
+      <div
+        id="rescue-detail"
+        class="rescue-detail hidden"
+      ></div>
+
     </div>
   `;
 }
-
 function showRescuePlan(choice) {
-  const detail = document.getElementById("rescue-detail");
+  const detail =
+    document.getElementById(
+      "rescue-detail"
+    );
+
   if (!detail) return;
 
-  const steps = getRescueSteps(choice);
-  const hotlines = getRecommendedHotlines(choice, latestAnalyzedMessage);
+  const rescue =
+    window.currentScamRescue || {};
+
+  const steps =
+    Array.isArray(rescue[choice])
+      ? rescue[choice]
+      : [];
+
+  if (!steps.length) {
+    detail.innerHTML = `
+      <p class="text-slate-600">
+        Gemini chưa cung cấp hướng xử lý riêng cho tình huống này.
+      </p>
+    `;
+
+    detail.classList.remove("hidden");
+    return;
+  }
 
   detail.classList.remove("hidden");
 
   detail.innerHTML = `
-    <h4 class="font-black text-red-800 mb-2">📌 Việc cần làm ngay</h4>
+    <h4 class="font-black text-red-800 mb-3">
+      📌 Việc nên làm ngay
+    </h4>
 
-    <ol class="list-decimal pl-5 space-y-2 text-slate-800 font-medium">
-      ${steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+    <ol class="list-decimal pl-5 space-y-2">
+      ${steps
+        .map(
+          step =>
+            `<li>${escapeHtml(step)}</li>`
+        )
+        .join("")}
     </ol>
-
-    <h4 class="font-black text-blue-800 mt-4 mb-2">☎️ Số nên liên hệ</h4>
-
-    ${hotlines.map(item => `
-      <div class="hotline-item">
-        <div class="font-bold text-slate-800">${escapeHtml(item.name)}</div>
-        <a class="hotline-number" href="tel:${escapeHtml(item.number)}">${escapeHtml(item.number)}</a>
-        <div class="text-sm text-slate-600 mt-1">${escapeHtml(item.note)}</div>
-      </div>
-    `).join("")}
   `;
 }
 
