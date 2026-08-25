@@ -269,34 +269,21 @@ async function analyzeMessage() {
 
     // Pass the completely unmasked text directly into Gemini engine
     const aiData = await callGemini(completelyUnshortenedMsg);
-   const parsedData = normalizeAiData(
-  aiData,
-  completelyUnshortenedMsg
-);
+    const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
 
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
   } catch (err) {
-  console.error("ScamCheck analysis error:", err);
+    console.error("Gemini error:", err);
 
-  resultDiv.innerHTML = `
-    <div class="bg-red-50 border-2 border-red-300 rounded-xl p-5">
-      <h3 class="text-xl font-black text-red-800">
-        ⚠️ Không thể hoàn thành phân tích
-      </h3>
-
-      <p class="text-red-700 mt-2">
-        ScamCheck chưa nhận được kết quả từ hệ thống AI.
-        Vui lòng thử lại sau.
-      </p>
-
-      <p class="text-xs text-red-500 mt-3">
-        ${escapeHtml(err.message || "Unknown error")}
-      </p>
-    </div>
-  `;
-
-  return;
+    const fallback = localFallbackAnalysis(msg);
+    fallback.notice = "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
+    saveToHistory(msg, fallback);
+    displayResult(msg, fallback);
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerText = "🔍 Kiểm tra ngay";
+  }
 }
 // ==========================================
 // 5. LLM INTEGRATION LAYER
