@@ -347,7 +347,8 @@ body.dark-mode .border-slate-300 {
 }
 
 body.dark-mode textarea,
-body.dark-mode input {
+body.dark-mode input,
+body.dark-mode select {
   background: #020617 !important;
   color: #e2e8f0 !important;
   border-color: #475569 !important;

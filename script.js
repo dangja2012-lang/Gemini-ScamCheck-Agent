@@ -2,6 +2,111 @@
 // 1. GLOBAL CONFIGURATION & DATA DICTIONARIES
 // ==========================================
 
+const BACKEND_API_URL = "https://gemini-scamcheck-agent-2.onrender.com";
+
+const UI_TEXT_VI = {
+  languageLabel: "Ngôn ngữ", tagline: "🕵️‍♂️ Thám tử kỹ thuật & 🧠 Cô tâm lý đồng hành bảo vệ gia đình",
+  themeDark: "🌙 Tối", themeLight: "☀️ Sáng",
+  analyzeTab: "🔍 Phân Tích", libraryTab: "📚 Thư Viện Lừa Đảo", samplesLabel: "Thử nhanh bằng tin mẫu:",
+  sampleBank: "🏦 Giả mạo Ngân hàng", samplePolice: "👮 Giả mạo Công an", samplePrize: "🎁 Trúng thưởng giả",
+  messagePlaceholder: "Dán hoặc gõ nội dung tin nhắn nghi ngờ vào đây...", analyzeButton: "🔍 Kiểm tra ngay",
+  libraryTitle: "📚 Thư Viện Lừa Đảo", libraryDescription: "Bộ dữ liệu gồm nhiều nhóm lừa đảo. Tìm kiếm theo tên, mô tả, nội dung tin nhắn hoặc nhóm phân loại.",
+  searchPlaceholder: "Tìm: ngân hàng, công an, giao hàng, OTP...", clear: "Xóa", all: "Tất cả", bank: "🏦 Ngân hàng",
+  police: "👮 Công an", prize: "🎁 Trúng thưởng", delivery: "📦 Giao hàng", historyTitle: "⏳ Lịch sử kiểm tra",
+  clearHistory: "🗑️ Xóa", noHistory: "Chưa có dữ liệu kiểm tra.",
+  legalNotice: "Lưu ý pháp lý: ScamCheck là công cụ giáo dục do nhóm học viên phát triển. Đánh giá của ứng dụng không thay thế cảnh báo chính thức từ ngân hàng hoặc cơ quan chức năng.",
+  inputRequired: "⚠️ Vui lòng nhập hoặc dán nội dung tin nhắn cần kiểm tra.", tooLong: "⚠️ Tin nhắn quá dài, vui lòng rút gọn dưới 5000 ký tự.",
+  resolving: "🔍 Đang mở và giải mã đường dẫn rút gọn...", analyzing: "Đang phân tích bằng Gemini...",
+  fallbackNotice: "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.", riskLevel: "Mức độ rủi ro",
+  safe: "An toàn", suspicious: "Nghi ngờ", dangerous: "Nguy hiểm", originalMessage: "Nội dung tin nhắn gốc:",
+  detective: "Thám tử", detectedSigns: "🔎 Dấu hiệu kỹ thuật phát hiện:", noSigns: "Không phát hiện dấu hiệu kỹ thuật nguy hiểm rõ ràng.",
+  recommendedActions: "🛠️ Hành động ứng phó khuyên dùng:", psychologist: "Cô Tâm Lý", manipulation: "🎯 Đòn bẫy thao túng tâm lý:",
+  rescue: "🚨 Người ứng cứu", rescueIntro: "Nếu đã lỡ tương tác với tin nhắn này, hãy chọn tình huống gần đúng nhất để xem bước xử lý nhanh.",
+  none: "✅ Chưa làm gì", clicked: "🔗 Đã bấm vào đường dẫn", transferred: "💸 Đã chuyển khoản", otp: "🔐 Đã cung cấp mã xác thực / OTP",
+  immediateSteps: "📌 Việc cần làm ngay", contactNumbers: "☎️ Số nên liên hệ", linkCheck: "🔗 Kiểm tra đường dẫn",
+  resolvedLink: "Đã mở được đích đến", unresolvedLink: "Không thể mở đích đến", finalDomain: "Tên miền đích",
+  loadingDetective: "🕵️‍♂️ Thám tử đang phân tích và kiểm tra liên kết...", loadingPsychologist: "🧠 Cô tâm lý sẽ xuất hiện nếu tin nhắn có rủi ro.",
+  fallbackReason: "Tin nhắn có nội dung cần kiểm chứng thêm.", fallbackAction1: "Không bấm vào đường link lạ.",
+  fallbackAction2: "Không cung cấp OTP, mật khẩu hoặc thông tin tài khoản.", fallbackAction3: "Gọi tổng đài chính thức hoặc hỏi người thân trước khi làm theo.",
+  fallbackManipulation: "Tin nhắn có thể tạo cảm giác gấp gáp khiến người nhận mất bình tĩnh.", fallbackAdvice: "Hãy bình tĩnh và kiểm tra trước khi làm theo.",
+  fallbackLinkReason: "Có đường link lạ hoặc yêu cầu mã xác thực cần kiểm tra ngay.", fallbackPoliceReason: "Có dấu hiệu mạo danh cơ quan chức năng để đe dọa.", fallbackPrizeReason: "Có dấu hiệu bẫy nhận thưởng yêu cầu đóng phí trước.", backupSource: "Dự phòng",
+  rescueNone1: "Không bấm thêm bất kỳ đường dẫn nào.", rescueNone2: "Chụp màn hình hoặc lưu tin nhắn làm bằng chứng.", rescueNone3: "Chặn người gửi và báo cho người thân.",
+  rescueClicked1: "Đóng ngay trang web và không nhập thêm thông tin.", rescueClicked2: "Đổi mật khẩu trên ứng dụng hoặc trang chính thức nếu đã nhập mật khẩu.", rescueClicked3: "Liên hệ ngân hàng hoặc đơn vị bị mạo danh.",
+  rescueTransferred1: "Gọi ngay ngân hàng để khóa hoặc tra soát giao dịch.", rescueTransferred2: "Lưu biên lai, số tài khoản nhận tiền, tin nhắn và đường dẫn.", rescueTransferred3: "Trình báo công an và cung cấp toàn bộ bằng chứng.",
+  rescueOtp1: "Gọi ngân hàng để khóa tài khoản, thẻ hoặc ngân hàng số.", rescueOtp2: "Đổi mật khẩu tài khoản liên quan trên kênh chính thức.", rescueOtp3: "Kiểm tra giao dịch và không cung cấp thêm mã OTP."
+};
+
+const UI_TEXT_EN = {
+  ...UI_TEXT_VI,
+  languageLabel: "Language", tagline: "🕵️‍♂️ Technical Detective & 🧠 Psychology Guide protecting your family",
+  themeDark: "🌙 Dark", themeLight: "☀️ Light",
+  analyzeTab: "🔍 Analyze", libraryTab: "📚 Scam Library", samplesLabel: "Try a sample message:",
+  sampleBank: "🏦 Fake bank", samplePolice: "👮 Fake police", samplePrize: "🎁 Fake prize",
+  messagePlaceholder: "Paste or type a suspicious message here...", analyzeButton: "🔍 Check now",
+  libraryTitle: "📚 Scam Library", libraryDescription: "Browse common scam types and search by title, description, message, or category.",
+  searchPlaceholder: "Search: bank, police, delivery, OTP...", clear: "Clear", all: "All", bank: "🏦 Bank",
+  police: "👮 Police", prize: "🎁 Prize", delivery: "📦 Delivery", historyTitle: "⏳ Check history",
+  clearHistory: "🗑️ Clear", noHistory: "No checks yet.",
+  legalNotice: "Legal notice: ScamCheck is an educational tool developed by students. Its assessments do not replace official warnings from banks or authorities.",
+  inputRequired: "⚠️ Please enter or paste a message to check.", tooLong: "⚠️ The message is too long. Please keep it under 5,000 characters.",
+  resolving: "🔍 Opening and decoding shortened links...", analyzing: "Analyzing with Gemini...",
+  fallbackNotice: "Gemini did not return a valid result, so the backup analyzer is being used.", riskLevel: "Risk level",
+  safe: "Safe", suspicious: "Suspicious", dangerous: "Dangerous", originalMessage: "Original message:",
+  detective: "Detective", detectedSigns: "🔎 Technical warning signs:", noSigns: "No clear technical danger signs were found.",
+  recommendedActions: "🛠️ Recommended actions:", psychologist: "Psychology Guide", manipulation: "🎯 Psychological manipulation:",
+  rescue: "🚨 Emergency Helper", rescueIntro: "If you already interacted with this message, choose the closest situation for immediate steps.",
+  none: "✅ I did nothing", clicked: "🔗 I opened the link", transferred: "💸 I transferred money", otp: "🔐 I shared an OTP/code",
+  immediateSteps: "📌 Do this now", contactNumbers: "☎️ Who to contact", linkCheck: "🔗 Link inspection",
+  resolvedLink: "Destination opened", unresolvedLink: "Destination could not be opened", finalDomain: "Destination domain",
+  loadingDetective: "🕵️‍♂️ The detective is analyzing the message and its links...", loadingPsychologist: "🧠 The psychology guide will appear if the message is risky.",
+  fallbackReason: "This message needs further verification.", fallbackAction1: "Do not open unfamiliar links.",
+  fallbackAction2: "Do not share OTPs, passwords, or account information.", fallbackAction3: "Contact the official organization or ask someone you trust first.",
+  fallbackManipulation: "The message may create urgency so the recipient acts without thinking.", fallbackAdvice: "Stay calm and verify the request before acting.",
+  fallbackLinkReason: "An unfamiliar link or verification-code request needs immediate checking.", fallbackPoliceReason: "The message may impersonate an authority to frighten the recipient.", fallbackPrizeReason: "The prize claim appears to demand an advance fee.", backupSource: "Backup",
+  rescueNone1: "Do not open any links in the message.", rescueNone2: "Save a screenshot or the original message as evidence.", rescueNone3: "Block the sender and warn someone you trust.",
+  rescueClicked1: "Close the website immediately and enter no more information.", rescueClicked2: "If you entered a password, change it through the official app or website.", rescueClicked3: "Contact the bank or organization being impersonated.",
+  rescueTransferred1: "Call your bank immediately to block or trace the transaction.", rescueTransferred2: "Save the receipt, recipient account, messages, and links.", rescueTransferred3: "Report the incident to the police and provide the evidence.",
+  rescueOtp1: "Call the bank to lock your account, card, or online banking.", rescueOtp2: "Change related passwords through official channels.", rescueOtp3: "Review transactions and do not share any more OTPs."
+};
+
+let currentLanguage = localStorage.getItem("scamcheck_language") || "vi";
+const STATIC_UI_TRANSLATIONS = window.SC_UI_TRANSLATIONS || {};
+let uiText = currentLanguage === "vi"
+  ? UI_TEXT_VI
+  : { ...UI_TEXT_EN, ...(STATIC_UI_TRANSLATIONS[currentLanguage] || {}) };
+
+function t(key) {
+  return uiText[key] || UI_TEXT_EN[key] || UI_TEXT_VI[key] || key;
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLanguage;
+  // Keep the application layout stable. Arabic and Hebrew glyphs still render
+  // right-to-left naturally, but flex/grid positions no longer reverse.
+  document.documentElement.dir = "ltr";
+  document.querySelectorAll("[data-i18n]").forEach(element => {
+    element.textContent = t(element.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(element => {
+    element.placeholder = t(element.dataset.i18nPlaceholder);
+  });
+  const themeButton = document.getElementById("theme-toggle");
+  if (themeButton) {
+    themeButton.textContent = document.body.classList.contains("dark-mode") ? t("themeLight") : t("themeDark");
+  }
+}
+
+async function changeLanguage(languageCode) {
+  currentLanguage = languageCode;
+  localStorage.setItem("scamcheck_language", languageCode);
+  localStorage.removeItem(`scamcheck_ui_${languageCode}`);
+  uiText = languageCode === "vi"
+    ? UI_TEXT_VI
+    : { ...UI_TEXT_EN, ...(STATIC_UI_TRANSLATIONS[languageCode] || {}) };
+  applyTranslations();
+  renderHistory();
+}
+
 const samples = {
   1: "[VIETCOMBANK] Tai khoan cua ban dang bi dang nhap la tai thiet bi khac. Neu khong phai ban vui long truy cap vao link http://vietcornbank-login.cc de xac minh danh tinh va bao mat tai khoan ngay lap tuc!",
   2: "Bo Cong An thong bao: Ong/Ba dang lien quan den mot du an ma tuy xuyen quoc gia. Yeu cau cung cap ma OTP va rut het tien gui vao tai khoan an toan cua co quan dieu tra de kiem xat. Neu khong hop tac se bi bat giam sau 2 gio.",
@@ -154,6 +259,9 @@ let latestAnalyzedMessage = "";
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  const languageSelect = document.getElementById("language-select");
+  if (languageSelect) languageSelect.value = currentLanguage;
+  changeLanguage(currentLanguage);
   renderHistory();
   renderLibraryGrid();
 });
@@ -191,34 +299,6 @@ function extractAllUrls(text) {
   return text.match(urlRegex) || [];
 }
 
-// Sends short links to your Cloudflare Worker middleware wrapper
-async function resolveShortLink(shortUrl) {
-  if (
-    typeof PROXY_API_URL === "undefined" ||
-    !PROXY_API_URL ||
-    !PROXY_API_URL.startsWith("http")
-  ) {
-    return shortUrl;
-  }
-
-  try {
-    const res = await fetch(PROXY_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ shortUrl }),
-      signal: AbortSignal.timeout(4000) // Fallback limit of 4 seconds per fetch request
-    });
-    
-    if (!res.ok) return shortUrl; // Fallback to raw link if gateway fails
-    
-    const data = await res.json();
-    return data.realUrl || shortUrl;
-  } catch (err) {
-    console.warn(`Could not resolve link structure for ${shortUrl}:`, err);
-    return shortUrl; 
-  }
-}
-
 // ==========================================
 // 4. MAIN SCANNER RUNNER
 // ==========================================
@@ -229,12 +309,12 @@ async function analyzeMessage() {
   const analyzeBtn = document.getElementById("analyze-btn");
 
   if (!msg) {
-    showError("⚠️ Vui lòng nhập hoặc dán nội dung tin nhắn cần kiểm tra.");
+    showError(t("inputRequired"));
     return;
   }
 
   if (msg.length > 5000) {
-    showError("⚠️ Tin nhắn quá dài, vui lòng rút gọn dưới 5000 ký tự.");
+    showError(t("tooLong"));
     return;
   }
 
@@ -244,45 +324,24 @@ async function analyzeMessage() {
   analyzeBtn.disabled = true;
 
   try {
-    // Look for all embedded URLs inside user input text layout
     const foundUrls = extractAllUrls(msg);
-    let completelyUnshortenedMsg = msg;
+    analyzeBtn.innerText = foundUrls.length > 0 ? t("resolving") : t("analyzing");
 
-    if (foundUrls.length > 0) {
-      analyzeBtn.innerText = "🔍 Đang giải mã đường dẫn ẩn...";
-      
-      // Request all link evaluations concurrently in parallel
-      const resolvePromises = foundUrls.map(async (url) => {
-        const realUrl = await resolveShortLink(url);
-        return { original: url, resolved: realUrl };
-      });
-      
-      const resolvedLinks = await Promise.all(resolvePromises);
-      
-      // Systematically rewrite short matches to target addresses inside user string copy
-      resolvedLinks.forEach(item => {
-        completelyUnshortenedMsg = completelyUnshortenedMsg.replace(item.original, item.resolved);
-      });
-    }
-
-    analyzeBtn.innerText = "Đang phân tích bằng Gemini...";
-
-    // Pass the completely unmasked text directly into Gemini engine
-    const aiData = await callGemini(completelyUnshortenedMsg);
-    const parsedData = normalizeAiData(aiData, completelyUnshortenedMsg);
+    const aiData = await callGemini(msg);
+    const parsedData = normalizeAiData(aiData, msg);
 
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
   } catch (err) {
-    console.error("Gemini error:", err);
+    console.warn("Gemini unavailable; backup analyzer used:", err.message);
 
     const fallback = localFallbackAnalysis(msg);
-    fallback.notice = "Gemini chưa trả kết quả hợp lệ nên hệ thống tạm dùng bộ phân tích dự phòng.";
+    fallback.notice = `${t("fallbackNotice")} ${err.message || ""}`.trim();
     saveToHistory(msg, fallback);
     displayResult(msg, fallback);
   } finally {
     analyzeBtn.disabled = false;
-    analyzeBtn.innerText = "🔍 Kiểm tra ngay";
+    analyzeBtn.innerText = t("analyzeButton");
   }
 }
 
@@ -291,12 +350,12 @@ async function analyzeMessage() {
 // ==========================================
 
 async function callGemini(message) {
-  const res = await fetch("https://gemini-scamcheck-agent-2.onrender.com/analyze", {
+  const res = await fetch(`${BACKEND_API_URL}/analyze`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message, language: currentLanguage })
   });
 
   const text = await res.text();
@@ -309,7 +368,7 @@ async function callGemini(message) {
   }
 
   if (!res.ok) {
-    throw new Error(data.error || "Backend error");
+    throw new Error(data.hint || data.error || "Backend error");
   }
 
   return data;
@@ -441,7 +500,10 @@ function extractJsonObject(text) {
 
 function normalizeAiData(data, originalMsg) {
   const allowedRisk = ["An toàn", "Nghi ngờ", "Nguy hiểm"];
-  const risk = allowedRisk.includes(data?.risk) ? data.risk : "Nghi ngờ";
+  if (!allowedRisk.includes(data?.risk)) {
+    throw new Error("Gemini trả về mức rủi ro không hợp lệ.");
+  }
+  const risk = data.risk;
 
   let indicators = Array.isArray(data?.indicators) ? data.indicators : [];
 
@@ -450,45 +512,45 @@ function normalizeAiData(data, originalMsg) {
     .filter(item => item && typeof item === "object")
     .map(item => ({
       quote: typeof item.quote === "string" ? item.quote : "",
-      reason: typeof item.reason === "string" ? item.reason : "Dấu hiệu cần kiểm chứng thêm."
+      reason: typeof item.reason === "string" ? item.reason.trim() : ""
     }));
 
-  if (risk !== "An toàn" && indicators.length === 0) {
-    indicators.push({
-      quote: originalMsg.slice(0, 40),
-      reason: "Tin nhắn có dấu hiệu bất thường cần kiểm chứng."
-    });
+  if (risk !== "An toàn" && (!indicators.length || indicators.some(item => !item.reason))) {
+    throw new Error("Gemini không tạo đủ nội dung cho Thám tử.");
   }
 
   let actions = Array.isArray(data?.actions)
     ? data.actions.filter(action => typeof action === "string" && action.trim())
     : [];
 
-  actions = actions.slice(0, 3);
-
-  const defaultActions = [
-    "Không bấm vào đường link hoặc tệp lạ.",
-    "Không cung cấp OTP, mật khẩu, số tài khoản hoặc thông tin cá nhân.",
-    "Gọi tổng đài chính thức hoặc hỏi người thân trước khi làm theo."
-  ];
-
-  while (actions.length < 3) {
-    actions.push(defaultActions[actions.length]);
+  actions = actions.slice(0, 3).map(action => action.trim());
+  if (actions.length !== 3) {
+    throw new Error("Gemini không tạo đủ 3 hành động cho Thám tử.");
   }
 
   let psychology = null;
 
   if (risk !== "An toàn") {
+    if (!data?.psychology?.manipulation?.trim() || !data?.psychology?.advice?.trim()) {
+      throw new Error("Gemini không tạo đủ nội dung cho Cô tâm lý.");
+    }
     psychology = {
-      manipulation:
-        typeof data?.psychology?.manipulation === "string" && data.psychology.manipulation.trim()
-          ? data.psychology.manipulation
-          : "Kẻ xấu có thể đang tạo áp lực tâm lý để bác hành động vội.",
-      advice:
-        typeof data?.psychology?.advice === "string" && data.psychology.advice.trim()
-          ? data.psychology.advice
-          : "Bác cứ bình tĩnh, mình kiểm tra trước khi làm theo là rất đúng."
+      manipulation: data.psychology.manipulation.trim(),
+      advice: data.psychology.advice.trim()
     };
+  }
+
+  const rescueKeys = ["none", "clicked", "transferred", "otp"];
+  let rescue = null;
+  if (risk !== "An toàn") {
+    rescue = {};
+    for (const key of rescueKeys) {
+      const steps = Array.isArray(data?.rescue?.[key])
+        ? data.rescue[key].filter(step => typeof step === "string" && step.trim()).slice(0, 3)
+        : [];
+      if (steps.length !== 3) throw new Error(`Gemini không tạo đủ nội dung ứng cứu: ${key}.`);
+      rescue[key] = steps.map(step => step.trim());
+    }
   }
 
   return {
@@ -496,6 +558,8 @@ function normalizeAiData(data, originalMsg) {
     indicators,
     actions,
     psychology,
+    rescue,
+    linkAnalysis: Array.isArray(data?.linkAnalysis) ? data.linkAnalysis : [],
     source: "Gemini AI"
   };
 }
@@ -508,19 +572,19 @@ function localFallbackAnalysis(msg) {
     indicators: [
       {
         quote: msg.slice(0, 40),
-        reason: "Tin nhắn có nội dung cần kiểm chứng thêm."
+        reason: t("fallbackReason")
       }
     ],
     actions: [
-      "Không bấm vào đường link lạ.",
-      "Không cung cấp OTP, mật khẩu hoặc thông tin tài khoản.",
-      "Gọi tổng đài chính thức hoặc hỏi người thân trước khi làm theo."
+      t("fallbackAction1"),
+      t("fallbackAction2"),
+      t("fallbackAction3")
     ],
     psychology: {
-      manipulation: "Tin nhắn có thể tạo cảm giác gấp gáp khiến người nhận mất bình tĩnh.",
-      advice: "Bác cứ bình tĩnh, kiểm tra trước là cách bảo vệ mình rất tốt."
+      manipulation: t("fallbackManipulation"),
+      advice: t("fallbackAdvice")
     },
-    source: "Dự phòng"
+    source: t("backupSource")
   };
 
   if (
@@ -536,7 +600,7 @@ function localFallbackAnalysis(msg) {
     data.indicators = [
       {
         quote: "link / OTP",
-        reason: "Có đường link lạ hoặc yêu cầu mã xác thực, đây là dấu hiệu nguy hiểm."
+        reason: t("fallbackLinkReason")
       }
     ];
   }
@@ -553,7 +617,7 @@ function localFallbackAnalysis(msg) {
     data.indicators = [
       {
         quote: "Công an / bắt giam / phạt nguội",
-        reason: "Có dấu hiệu mạo danh cơ quan chức năng để đe dọa."
+        reason: t("fallbackPoliceReason")
       }
     ];
   }
@@ -569,7 +633,7 @@ function localFallbackAnalysis(msg) {
     data.indicators = [
       {
         quote: "trúng thưởng / quà miễn phí",
-        reason: "Có dấu hiệu bẫy nhận thưởng yêu cầu đóng phí trước."
+        reason: t("fallbackPrizeReason")
       }
     ];
   }
@@ -597,8 +661,10 @@ function displayResult(originalMsg, data) {
     : "";
 
   const highlightedMsg = highlightQuotes(originalMsg, data.indicators || []);
+  const riskLabel = data.risk === "An toàn" ? t("safe") : data.risk === "Nguy hiểm" ? t("dangerous") : t("suspicious");
+  const linksHtml = buildLinkAnalysisHtml(data.linkAnalysis || []);
   latestAnalyzedMessage = originalMsg;
-const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(originalMsg, data);;
+  const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(originalMsg, data);
 
   const indicatorsHtml =
     data.indicators && data.indicators.length
@@ -608,7 +674,7 @@ const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(origina
               `<li><strong class="text-slate-800">"${escapeHtml(item.quote || "dấu hiệu")}"</strong>: ${escapeHtml(item.reason)}</li>`
           )
           .join("")
-      : `<li>Không phát hiện dấu hiệu kỹ thuật nguy hiểm rõ ràng.</li>`;
+      : `<li>${escapeHtml(t("noSigns"))}</li>`;
 
   const actionsHtml = (data.actions || [])
     .map(action => `<li>${escapeHtml(action)}</li>`)
@@ -619,11 +685,11 @@ const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(origina
       <div class="bg-purple-50 p-5 rounded-xl border border-purple-200 shadow-sm space-y-3">
         <div class="flex items-center space-x-2 border-b border-purple-100 pb-2">
           <span class="text-2xl">🧠</span>
-          <h3 class="text-xl font-bold text-purple-900">Cô Tâm Lý</h3>
+          <h3 class="text-xl font-bold text-purple-900">${escapeHtml(t("psychologist"))}</h3>
         </div>
 
         <div>
-          <h4 class="text-base font-bold text-purple-950">🎯 Đòn bẫy thao túng tâm lý:</h4>
+          <h4 class="text-base font-bold text-purple-950">${escapeHtml(t("manipulation"))}</h4>
           <p class="text-base text-purple-900 mt-1 leading-relaxed">${escapeHtml(data.psychology.manipulation)}</p>
         </div>
 
@@ -642,29 +708,31 @@ const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(origina
     ${noticeHtml}
 
     <div class="border-2 p-4 rounded-xl text-center shadow-sm transition-all ${riskClass}">
-      <span class="text-sm font-bold uppercase tracking-wider block opacity-75">Mức độ rủi ro</span>
-      <span class="text-3xl font-black">${escapeHtml(data.risk)}</span>
+      <span class="text-sm font-bold uppercase tracking-wider block opacity-75">${escapeHtml(t("riskLevel"))}</span>
+      <span class="text-3xl font-black">${escapeHtml(riskLabel)}</span>
       ${sourceBadge}
     </div>
 
     <div class="bg-slate-100 p-4 rounded-xl border border-slate-200">
-      <h4 class="text-sm font-bold text-slate-500 mb-2">Nội dung tin nhắn gốc:</h4>
+      <h4 class="text-sm font-bold text-slate-500 mb-2">${escapeHtml(t("originalMessage"))}</h4>
       <p class="text-lg whitespace-pre-wrap leading-relaxed text-slate-800">${highlightedMsg}</p>
     </div>
+
+    ${linksHtml}
 
     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
       <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
         <span class="text-2xl">🕵️‍♂️</span>
-        <h3 class="text-xl font-bold text-slate-800">Thám tử</h3>
+        <h3 class="text-xl font-bold text-slate-800">${escapeHtml(t("detective"))}</h3>
       </div>
 
       <div>
-        <h4 class="text-base font-bold text-red-600 mb-1">🔎 Dấu hiệu kỹ thuật phát hiện:</h4>
+        <h4 class="text-base font-bold text-red-600 mb-1">${escapeHtml(t("detectedSigns"))}</h4>
         <ul class="list-disc pl-5 space-y-1 text-base text-slate-700">${indicatorsHtml}</ul>
       </div>
 
       <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-        <h4 class="text-base font-bold text-blue-900 mb-1">🛠️ Hành động ứng phó khuyên dùng:</h4>
+        <h4 class="text-base font-bold text-blue-900 mb-1">${escapeHtml(t("recommendedActions"))}</h4>
         <ul class="list-decimal pl-5 space-y-1 text-base text-blue-950 font-medium">${actionsHtml}</ul>
       </div>
     </div>
@@ -674,6 +742,30 @@ const rescueSection = data.risk === "An toàn" ? "" : buildRescueSection(origina
   `;
   window.currentScamRescue =
   data.rescue || {};
+}
+
+function buildLinkAnalysisHtml(links) {
+  if (!Array.isArray(links) || links.length === 0) return "";
+
+  return `
+    <div class="bg-cyan-50 p-5 rounded-xl border border-cyan-200 shadow-sm">
+      <h3 class="text-lg font-black text-cyan-950 mb-3">${escapeHtml(t("linkCheck"))}</h3>
+      <div class="space-y-3">
+        ${links.map(link => {
+          let hostname = link.final || link.original || "";
+          try { hostname = new URL(hostname).hostname; } catch {}
+          const statusText = link.resolved ? t("resolvedLink") : t("unresolvedLink");
+          const statusClass = link.resolved ? "text-green-800 bg-green-100" : "text-amber-900 bg-amber-100";
+          return `
+            <div class="bg-white border border-cyan-100 rounded-lg p-3 overflow-hidden">
+              <span class="inline-block px-2 py-1 rounded-md text-xs font-bold ${statusClass}">${escapeHtml(statusText)}</span>
+              <p class="mt-2 text-sm text-slate-600 break-all"><strong>${escapeHtml(link.original || "")}</strong></p>
+              <p class="mt-1 text-sm text-cyan-900 break-all">→ ${escapeHtml(link.final || link.original || "")}</p>
+              <p class="mt-1 text-xs text-slate-500">${escapeHtml(t("finalDomain"))}: ${escapeHtml(hostname)}</p>
+            </div>`;
+        }).join("")}
+      </div>
+    </div>`;
 }
 
 function highlightQuotes(text, indicators) {
@@ -695,8 +787,8 @@ function loadingHtml() {
     <div class="flex flex-col items-center justify-center p-8 bg-slate-50 border border-slate-200 rounded-xl space-y-4 w-full">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
       <div class="text-center space-y-1">
-        <p class="text-slate-800 font-bold text-lg animate-pulse">🕵️‍♂️ Thám tử đang phân tích và kiểm tra liên kết...</p>
-        <p class="text-purple-700 font-medium text-base animate-pulse">🧠 Cô tâm lý sẽ xuất hiện nếu tin nhắn có rủi ro.</p>
+        <p class="text-slate-800 font-bold text-lg animate-pulse">${escapeHtml(t("loadingDetective"))}</p>
+        <p class="text-purple-700 font-medium text-base animate-pulse">${escapeHtml(t("loadingPsychologist"))}</p>
       </div>
     </div>
   `;
@@ -723,7 +815,7 @@ function saveToHistory(msg, data) {
   history.unshift({
     msg,
     data,
-    time: new Date().toLocaleTimeString("vi-VN", {
+    time: new Date().toLocaleTimeString(currentLanguage, {
       hour: "2-digit",
       minute: "2-digit"
     })
@@ -742,7 +834,7 @@ function renderHistory() {
   const history = JSON.parse(localStorage.getItem("scamcheck_history")) || [];
 
   if (history.length === 0) {
-    historyList.innerHTML = `<p class="text-slate-400 italic text-base">Chưa có lịch sử kiểm tra nào gần đây.</p>`;
+    historyList.innerHTML = `<p class="text-slate-400 italic text-base">${escapeHtml(t("noHistory"))}</p>`;
     return;
   }
 
@@ -759,8 +851,9 @@ function renderHistory() {
     itemBtn.className =
       "w-full text-left p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition text-base text-slate-700 font-medium flex justify-between items-center";
 
+    const historyRisk = item.data.risk === "An toàn" ? t("safe") : item.data.risk === "Nguy hiểm" ? t("dangerous") : t("suspicious");
     itemBtn.innerHTML = `
-      <span class="truncate mr-2">${riskEmoji} [${escapeHtml(item.data.risk || "Nghi ngờ")}] ${escapeHtml(item.msg)}</span>
+      <span class="truncate mr-2">${riskEmoji} [${escapeHtml(historyRisk)}] ${escapeHtml(item.msg)}</span>
       <span class="text-xs text-slate-400 flex-shrink-0">${escapeHtml(item.time || "")}</span>
     `;
 
@@ -882,26 +975,26 @@ function escapeHtml(value) {
 function buildRescueSection(originalMsg, data) {
   return `
     <div class="rescue-card">
-      <div class="rescue-title">🚨 Người ứng cứu</div>
+      <div class="rescue-title">${escapeHtml(t("rescue"))}</div>
       <p class="text-slate-700 text-base leading-relaxed">
-        Nếu người dùng đã lỡ tương tác với tin nhắn này, hãy chọn tình huống gần đúng nhất để xem bước xử lý nhanh.
+        ${escapeHtml(t("rescueIntro"))}
       </p>
 
       <div class="rescue-option-grid">
         <button class="rescue-btn" onclick="showRescuePlan('none')">
-          ✅ Chưa làm gì
+          ${escapeHtml(t("none"))}
         </button>
 
         <button class="rescue-btn" onclick="showRescuePlan('clicked')">
-          🔗 Đã bấm vào đường dẫn
+          ${escapeHtml(t("clicked"))}
         </button>
 
         <button class="rescue-btn" onclick="showRescuePlan('transferred')">
-          💸 Đã chuyển khoản
+          ${escapeHtml(t("transferred"))}
         </button>
 
         <button class="rescue-btn" onclick="showRescuePlan('otp')">
-          🔐 Đã cung cấp mã xác thực / OTP
+          ${escapeHtml(t("otp"))}
         </button>
       </div>
 
@@ -914,19 +1007,22 @@ function showRescuePlan(choice) {
   const detail = document.getElementById("rescue-detail");
   if (!detail) return;
 
-  const steps = getRescueSteps(choice);
+  const aiSteps = window.currentScamRescue?.[choice];
+  const steps = Array.isArray(aiSteps) && aiSteps.length === 3
+    ? aiSteps
+    : getRescueSteps(choice);
   const hotlines = getRecommendedHotlines(choice, latestAnalyzedMessage);
 
   detail.classList.remove("hidden");
 
   detail.innerHTML = `
-    <h4 class="font-black text-red-800 mb-2">📌 Việc cần làm ngay</h4>
+    <h4 class="font-black text-red-800 mb-2">${escapeHtml(t("immediateSteps"))}</h4>
 
     <ol class="list-decimal pl-5 space-y-2 text-slate-800 font-medium">
       ${steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
     </ol>
 
-    <h4 class="font-black text-blue-800 mt-4 mb-2">☎️ Số nên liên hệ</h4>
+    <h4 class="font-black text-blue-800 mt-4 mb-2">${escapeHtml(t("contactNumbers"))}</h4>
 
     ${hotlines.map(item => `
       <div class="hotline-item">
@@ -941,40 +1037,30 @@ function showRescuePlan(choice) {
 function getRescueSteps(choice) {
   if (choice === "none") {
     return [
-      "Không bấm thêm bất kỳ đường dẫn nào trong tin nhắn.",
-      "Chụp màn hình hoặc lưu lại tin nhắn làm bằng chứng.",
-      "Chặn số gửi tin và báo cho người thân biết để cùng kiểm tra."
+      t("rescueNone1"), t("rescueNone2"), t("rescueNone3")
     ];
   }
 
   if (choice === "clicked") {
     return [
-      "Đóng ngay trang web vừa mở, không nhập thêm thông tin.",
-      "Nếu đã nhập mật khẩu, hãy đổi mật khẩu ngay trên app/trang chính thức.",
-      "Gọi ngân hàng hoặc tổng đài liên quan nếu tin nhắn có nhắc tới tài khoản, thẻ hoặc OTP."
+      t("rescueClicked1"), t("rescueClicked2"), t("rescueClicked3")
     ];
   }
 
   if (choice === "transferred") {
     return [
-      "Gọi ngay ngân hàng để yêu cầu khóa/tra soát giao dịch.",
-      "Lưu lại số tài khoản nhận tiền, biên lai chuyển khoản, tin nhắn và đường dẫn.",
-      "Liên hệ công an hoặc tổng đài phản ánh lừa đảo để được hướng dẫn tiếp."
+      t("rescueTransferred1"), t("rescueTransferred2"), t("rescueTransferred3")
     ];
   }
 
   if (choice === "otp") {
     return [
-      "Gọi ngay ngân hàng để khóa tài khoản, thẻ hoặc dịch vụ ngân hàng số.",
-      "Đổi mật khẩu tài khoản liên quan trên ứng dụng/trang chính thức.",
-      "Không đọc lại OTP cho bất kỳ ai, kể cả người tự xưng là nhân viên ngân hàng/công an."
+      t("rescueOtp1"), t("rescueOtp2"), t("rescueOtp3")
     ];
   }
 
   return [
-    "Giữ bình tĩnh và không làm theo yêu cầu trong tin nhắn.",
-    "Lưu bằng chứng.",
-    "Liên hệ người thân hoặc tổng đài chính thức."
+    t("fallbackAdvice"), t("rescueNone2"), t("fallbackAction3")
   ];
 }
 
@@ -1088,7 +1174,7 @@ function toggleTheme() {
   localStorage.setItem("scamcheck_theme", isDark ? "dark" : "light");
 
   const btn = document.getElementById("theme-toggle");
-  if (btn) btn.innerText = isDark ? "☀️ Light" : "🌙 Dark";
+  if (btn) btn.innerText = isDark ? t("themeLight") : t("themeDark");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1100,8 +1186,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("theme-toggle");
   if (btn) {
     btn.innerText = document.body.classList.contains("dark-mode")
-      ? "☀️ Light"
-      : "🌙 Dark";
+      ? t("themeLight")
+      : t("themeDark");
   }
 });
 function clearHistory() {
