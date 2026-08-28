@@ -2144,4 +2144,3 @@ function openScamLibraryFromGuide() {
   }, 200);
 
 }
-
