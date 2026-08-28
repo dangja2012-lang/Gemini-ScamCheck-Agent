@@ -278,24 +278,32 @@
 // 1. GLOBAL CONFIGURATION & DATA DICTIONARIES
 // ==========================================
 
-const SCAMCHECK_VERSION = "v20";
+const SCAMCHECK_VERSION = "v21";
 
 // SAME-ORIGIN GEMINI MODE
 // Run `npm start`, then open http://127.0.0.1:3000.
 // server.js serves this frontend and privately reads .env. No key exists in browser JS.
-const BACKEND_API_URL = window.location.origin.replace(/\/$/, "");
+const CONFIGURED_BACKEND_URL = String(window.SC_CONFIG?.API_BASE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+
+const BACKEND_API_URL =
+  CONFIGURED_BACKEND_URL || window.location.origin.replace(/\/$/, "");
 
 async function backendFetch(path, options = {}) {
   if (window.location.protocol === "file:") {
     throw new Error("SCAMCHECK_SERVER_NOT_RUNNING: Run npm start and open http://127.0.0.1:3000 instead of opening index.html directly.");
   }
 
-  const response = await fetch(`${BACKEND_API_URL}${path}`, options);
-  return response;
+  return fetch(`${BACKEND_API_URL}${path}`, options);
 }
 
-console.info(`[ScamCheck ${SCAMCHECK_VERSION}] Same-origin mode: ${BACKEND_API_URL}`);
-console.info(`[ScamCheck ${SCAMCHECK_VERSION}] Flow: browser -> server.js -> .env -> Gemini`);
+console.info(
+  `[ScamCheck ${SCAMCHECK_VERSION}] Backend mode: ${
+    CONFIGURED_BACKEND_URL ? "configured" : "same-origin"
+  } -> ${BACKEND_API_URL}`
+);
+console.info(`[ScamCheck ${SCAMCHECK_VERSION}] Flow: browser -> Render/Node backend -> Gemini`);
 
 const UI_TEXT_VI = {
   languageLabel: "Ngôn ngữ", tagline: "🕵️‍♂️ Thám tử kỹ thuật & 🧠 Cô tâm lý đồng hành bảo vệ gia đình",
@@ -484,6 +492,7 @@ function applyTranslations() {
   if (themeButton) {
     themeButton.textContent = document.body.classList.contains("dark-mode") ? t("themeLight") : t("themeDark");
   }
+  renderUserGuide();
 }
 
 function changeLanguage(languageCode) {
@@ -697,7 +706,12 @@ async function analyzeMessage() {
     saveToHistory(msg, parsedData);
     displayResult(msg, parsedData);
   } catch (err) {
-    console.warn("Gemini unavailable; backup analyzer used:", err.message);
+    console.warn("Gemini unavailable; backup analyzer used:", {
+      message: err.message,
+      status: err.status || null,
+      reason: err.reason || null,
+      failures: err.failures || []
+    });
 
     const fallback = localFallbackAnalysis(msg);
     fallback.notice = t("fallbackNotice");
@@ -732,7 +746,13 @@ async function callGemini(message) {
   }
 
   if (!res.ok) {
-    throw new Error(data.hint || data.error || "Backend error");
+    const error = new Error(data.hint || data.error || `Backend error (${res.status})`);
+    error.status = res.status;
+    error.reason = data.reason || "BACKEND_ERROR";
+    error.failures = Array.isArray(data.failures) ? data.failures : [];
+    error.keysLoaded = data.keysLoaded;
+    error.modelsTried = data.modelsTried;
+    throw error;
   }
 
   return data;
@@ -2039,6 +2059,214 @@ function clearHistory() {
   localStorage.removeItem(historyStorageKey());
   renderHistory();
 }
+
+function getUserGuideCopy() {
+  if (currentLanguage === "vi") {
+    return {
+      triggerTitle: "Người mới?",
+      triggerSubtitle: "Hướng dẫn sử dụng",
+      mini: "HƯỚNG DẪN SCAMCHECK",
+      title: "👋 Chào mừng đến với ScamCheck",
+      intro: "Hướng dẫn từ A–Z để kiểm tra tin nhắn, hình ảnh, mã QR và xử lý khi gặp lừa đảo.",
+      quickTitle: "Bắt đầu trong 3 bước",
+      quickIntro: "Chỉ mất vài giây để thực hiện một lần kiểm tra.",
+      steps: [
+        ["Đưa nội dung vào ScamCheck", "Dán tin nhắn vào ô phân tích hoặc tải lên ảnh / mã QR."],
+        ["Nhấn “Kiểm tra ngay”", "ScamCheck gửi nội dung đến Gemini để phân tích dấu hiệu và mức độ rủi ro."],
+        ["Đọc kết quả & xử lý", "Xem mức rủi ro, Thám tử, Cô tâm lý và hướng dẫn ứng cứu."]
+      ],
+      fullTitle: "Hướng dẫn đầy đủ",
+      fullIntro: "Các chức năng chính của ScamCheck.",
+      features: [
+        ["💬", "1. Kiểm tra tin nhắn", "Dán hoặc nhập nội dung nghi ngờ rồi nhấn “Kiểm tra ngay”."],
+        ["🚦", "2. Mức độ rủi ro", "Kết quả được phân loại thành An toàn, Nghi ngờ hoặc Nguy hiểm."],
+        ["🕵️", "3. DETECTIVE", "Phân tích dấu hiệu kỹ thuật, cách viết bất thường, OTP, giả mạo, tên miền và liên kết đáng ngờ."],
+        ["🧠", "4. PSYCHOLOGIST", "Giải thích cách người gửi dùng sợ hãi, khẩn cấp, lòng tin, quyền lực hoặc phần thưởng để gây áp lực."],
+        ["🚨", "5. HELPER", "Đưa ra bước xử lý theo tình huống: chưa làm gì, đã bấm link, đã chuyển tiền hoặc đã cung cấp OTP."],
+        ["🔗", "6. Kiểm tra liên kết", "Đánh giá URL và cố gắng mở đích đến của các liên kết rút gọn như Bit.ly khi có thể."],
+        ["🖼️", "7. Kiểm tra hình ảnh", "Tải ảnh chụp màn hình hoặc hình chứa nội dung nghi ngờ để Gemini đọc và đánh giá."],
+        ["▦", "8. Kiểm tra mã QR", "ScamCheck đọc nội dung QR khi có thể và đưa liên kết hoặc dữ liệu đó vào quá trình đánh giá."],
+        ["📚", "9. Thư viện Lừa đảo", "Xem các kịch bản lừa đảo phổ biến và đưa mẫu trực tiếp vào bộ phân tích."],
+        ["🕘", "10. Lịch sử kiểm tra", "Xem lại các lần kiểm tra gần đây hoặc xóa lịch sử bất cứ lúc nào."],
+        ["📥", "11. Thẻ cảnh báo", "Tạo và tải ảnh cảnh báo có mức rủi ro, dấu hiệu chính và mã QR để chia sẻ."],
+        ["🌐", "12. 30+ ngôn ngữ", "Đổi ngôn ngữ ở phía trên; giao diện và kết quả sẽ theo ngôn ngữ đã chọn."],
+        ["🌗", "13. Sáng / Tối", "Chuyển nhanh giữa Light Mode và Dark Mode."],
+        ["🔐", "14. Bảo mật API", "Khóa Gemini nằm ở backend/Render, không nằm trong JavaScript công khai của trình duyệt."]
+      ],
+      warningTitle: "Lưu ý quan trọng",
+      warningText: "ScamCheck hỗ trợ nhận diện nguy cơ nhưng không thể đảm bảo chính xác 100%. Không gửi OTP, mật khẩu, PIN hoặc thông tin tài chính cho người lạ. Với trường hợp nghiêm trọng, hãy liên hệ ngân hàng hoặc cơ quan chức năng.",
+      libraryButton: "📚 Xem Thư viện",
+      startButton: "🔍 Bắt đầu kiểm tra",
+      closeLabel: "Đóng hướng dẫn"
+    };
+  }
+
+  if (currentLanguage === "en") {
+    return {
+      triggerTitle: "New here?",
+      triggerSubtitle: "How to use ScamCheck",
+      mini: "SCAMCHECK GUIDE",
+      title: "👋 Welcome to ScamCheck",
+      intro: "An A–Z guide to checking messages, images, QR codes, links, and what to do after a suspected scam.",
+      quickTitle: "Start in 3 steps",
+      quickIntro: "A normal check only takes a few seconds.",
+      steps: [
+        ["Add the suspicious content", "Paste a message or upload an image / QR code."],
+        ["Press “Check now”", "ScamCheck sends the evidence to Gemini for risk and scam-sign analysis."],
+        ["Read the result & respond", "Review the risk level, Detective, Psychology Guide, and Emergency Helper."]
+      ],
+      fullTitle: "Full guide",
+      fullIntro: "The main ScamCheck features.",
+      features: [
+        ["💬", "1. Message analysis", "Paste or type suspicious content and press “Check now”."],
+        ["🚦", "2. Risk level", "Results are classified as Safe, Suspicious, or Dangerous."],
+        ["🕵️", "3. DETECTIVE", "Analyzes technical clues, unusual wording, OTP requests, impersonation, domains, and suspicious links."],
+        ["🧠", "4. PSYCHOLOGIST", "Explains how fear, urgency, trust, authority, excitement, or reward pressure may be used to manipulate the recipient."],
+        ["🚨", "5. HELPER", "Provides next steps for no action yet, clicked link, transferred money, or shared OTP/code."],
+        ["🔗", "6. Link inspection", "Assesses URLs and attempts to resolve shortened links such as Bit.ly when possible."],
+        ["🖼️", "7. Image analysis", "Upload a screenshot or suspicious image for Gemini to read and assess."],
+        ["▦", "8. QR analysis", "ScamCheck decodes QR content when possible and includes the destination or text in the assessment."],
+        ["📚", "9. Scam Library", "Browse common scam scenarios and send examples directly to the analyzer."],
+        ["🕘", "10. Check history", "Review recent checks or clear the stored history whenever you want."],
+        ["📥", "11. Warning card", "Create a downloadable warning image with the risk result, major signs, and a QR code."],
+        ["🌐", "12. 30+ languages", "Choose a language at the top; the interface and results follow the selected language."],
+        ["🌗", "13. Light / Dark", "Switch between Light Mode and Dark Mode."],
+        ["🔐", "14. API security", "The Gemini credential stays on the backend/Render instead of public browser JavaScript."]
+      ],
+      warningTitle: "Important notice",
+      warningText: "ScamCheck supports risk recognition but cannot guarantee 100% accuracy. Never share OTPs, passwords, PINs, or financial information with strangers. Contact your bank or the appropriate authority for serious incidents.",
+      libraryButton: "📚 Open Scam Library",
+      startButton: "🔍 Start checking",
+      closeLabel: "Close guide"
+    };
+  }
+
+  // For every other language, reuse the already bundled static interface
+  // translations. This keeps the guide language-homogeneous even offline.
+  const selectedLanguageName =
+    document.getElementById("language-select")?.selectedOptions?.[0]?.textContent?.trim() ||
+    currentLanguage;
+
+  return {
+    triggerTitle: "👋 ScamCheck",
+    triggerSubtitle: t("analyzeTab"),
+    mini: "SCAMCHECK",
+    title: `👋 ScamCheck · ${selectedLanguageName}`,
+    intro: `${t("analyzeTab")} · ${t("imageAnalyzerTitle")} · ${t("linkCheck")} · ${t("rescue")}`,
+    quickTitle: t("analyzeTab"),
+    quickIntro: `${t("messagePlaceholder")} → ${t("analyzeButton")}`,
+    steps: [
+      [t("messagePlaceholder"), t("samplesLabel")],
+      [t("analyzeButton"), t("loadingDetective")],
+      [t("riskLevel"), `${t("recommendedActions")} · ${t("rescue")}`]
+    ],
+    fullTitle: t("analyzeTab"),
+    fullIntro: `${t("detective")} · ${t("psychologist")} · ${t("rescue")}`,
+    features: [
+      ["💬", `1. ${t("analyzeTab")}`, `${t("messagePlaceholder")} → ${t("analyzeButton")}`],
+      ["🚦", `2. ${t("riskLevel")}`, `${t("safe")} · ${t("suspicious")} · ${t("dangerous")}`],
+      ["🕵️", `3. ${t("detective")}`, t("detectedSigns")],
+      ["🧠", `4. ${t("psychologist")}`, t("manipulation")],
+      ["🚨", `5. ${t("rescue")}`, t("rescueIntro")],
+      ["🔗", `6. ${t("linkCheck")}`, `${t("resolvedLink")} · ${t("unresolvedLink")}`],
+      ["🖼️", `7. ${t("imageAnalyzerTitle")}`, t("imageAnalyzerDescription")],
+      ["▦", `8. QR`, t("qrFound")],
+      ["📚", `9. ${t("libraryTitle")}`, t("libraryDescription")],
+      ["🕘", `10. ${t("historyTitle")}`, `${t("clearHistory")} · ${t("noHistory")}`],
+      ["📥", `11. ${t("shareCardTitle")}`, `${t("downloadImage")} · ${t("scanToOpen")}`],
+      ["🌐", `12. 30+ · ${selectedLanguageName}`, selectedLanguageName],
+      ["🌗", `13. ${t("themeDark")} / ${t("themeLight")}`, `${t("themeDark")} · ${t("themeLight")}`],
+      ["🔐", "14. Gemini API", "Gemini · Render · API"]
+    ],
+    warningTitle: `⚠️ ${t("legalNotice")}`,
+    warningText: t("legalNotice"),
+    libraryButton: t("libraryTab"),
+    startButton: t("analyzeButton"),
+    closeLabel: t("clear")
+  };
+}
+
+function renderUserGuide() {
+  const copy = getUserGuideCopy();
+  const titleEl = document.getElementById("guide-trigger-title");
+  const subtitleEl = document.getElementById("guide-trigger-subtitle");
+  const dialog = document.getElementById("user-guide-dialog");
+
+  if (titleEl) titleEl.textContent = copy.triggerTitle;
+  if (subtitleEl) subtitleEl.textContent = copy.triggerSubtitle;
+  if (!dialog) return;
+
+  dialog.innerHTML = `
+    <div class="user-guide-header">
+      <div>
+        <span class="guide-mini-label">${escapeHtml(copy.mini)}</span>
+        <h2 id="guide-title">${escapeHtml(copy.title)}</h2>
+        <p>${escapeHtml(copy.intro)}</p>
+      </div>
+      <button type="button" class="guide-close" onclick="closeUserGuide()" aria-label="${escapeHtml(copy.closeLabel)}">×</button>
+    </div>
+
+    <section class="guide-quick-start">
+      <div class="guide-section-title">
+        <span>⚡</span>
+        <div>
+          <h3>${escapeHtml(copy.quickTitle)}</h3>
+          <p>${escapeHtml(copy.quickIntro)}</p>
+        </div>
+      </div>
+      <div class="quick-step-grid">
+        ${copy.steps.map((step, index) => `
+          <div class="quick-step">
+            <span class="quick-step-number">${index + 1}</span>
+            <div>
+              <strong>${escapeHtml(step[0])}</strong>
+              <p>${escapeHtml(step[1])}</p>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+
+    <section>
+      <div class="guide-section-title">
+        <span>🧭</span>
+        <div>
+          <h3>${escapeHtml(copy.fullTitle)}</h3>
+          <p>${escapeHtml(copy.fullIntro)}</p>
+        </div>
+      </div>
+      <div class="guide-feature-grid">
+        ${copy.features.map(feature => `
+          <article class="guide-feature-card">
+            <div class="guide-feature-icon">${feature[0]}</div>
+            <div>
+              <h4>${escapeHtml(feature[1])}</h4>
+              <p>${escapeHtml(feature[2])}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="guide-important">
+      <div class="guide-important-icon">⚠️</div>
+      <div>
+        <strong>${escapeHtml(copy.warningTitle)}</strong>
+        <p>${escapeHtml(copy.warningText)}</p>
+      </div>
+    </section>
+
+    <div class="guide-footer">
+      <button type="button" class="guide-secondary-btn" onclick="openScamLibraryFromGuide()">
+        ${escapeHtml(copy.libraryButton)}
+      </button>
+      <button type="button" class="guide-primary-btn" onclick="startScamCheckFromGuide()">
+        ${escapeHtml(copy.startButton)}
+      </button>
+    </div>
+  `;
+}
+
 // =====================================================
 // USER GUIDE
 // =====================================================
