@@ -1029,7 +1029,713 @@ body.dark-mode .media-analyzer {
   .app-main {
     padding: 18px !important;
   }
+/* =====================================================
+   NEW USER GUIDE BUTTON
+===================================================== */
 
+.guide-trigger {
+  margin-right: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  min-height: 52px;
+  padding: 8px 14px;
+
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+
+  background: #f8fafc;
+  color: #1e293b;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.guide-trigger:hover {
+  transform: translateY(-1px);
+
+  border-color: #60a5fa;
+
+  background: #eff6ff;
+
+  box-shadow:
+    0 8px 24px rgba(37, 99, 235, 0.15);
+}
+
+.guide-trigger-icon {
+  font-size: 24px;
+}
+
+.guide-trigger-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  line-height: 1.15;
+}
+
+.guide-trigger-text strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.guide-trigger-text small {
+  margin-top: 3px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #64748b;
+}
+
+.guide-trigger-arrow {
+  margin-left: 5px;
+
+  font-size: 24px;
+  font-weight: 700;
+
+  color: #2563eb;
+}
+
+
+/* =====================================================
+   MODAL BACKDROP
+===================================================== */
+
+.user-guide-modal {
+  position: fixed;
+  inset: 0;
+
+  z-index: 99999;
+
+  display: none;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(2, 6, 23, 0.72);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.user-guide-modal.open {
+  display: flex;
+}
+
+
+/* =====================================================
+   DIALOG
+===================================================== */
+
+.user-guide-dialog {
+  width: min(100%, 1050px);
+  max-height: 92vh;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  border-radius: 24px;
+
+  background: #ffffff;
+  color: #1e293b;
+
+  border: 1px solid #e2e8f0;
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.35);
+
+  animation: guideOpen 0.22s ease;
+}
+
+@keyframes guideOpen {
+
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.user-guide-header {
+  position: sticky;
+  top: 0;
+
+  z-index: 5;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 24px 26px;
+
+  border-bottom: 1px solid #e2e8f0;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(239, 246, 255, 0.98),
+      rgba(255, 255, 255, 0.98)
+    );
+
+  backdrop-filter: blur(12px);
+}
+
+.guide-mini-label {
+  display: inline-block;
+
+  margin-bottom: 6px;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 0.14em;
+
+  color: #2563eb;
+}
+
+.user-guide-header h2 {
+  margin: 0;
+
+  font-size: 26px;
+  font-weight: 900;
+
+  color: #0f172a;
+}
+
+.user-guide-header p {
+  margin: 6px 0 0;
+
+  max-width: 700px;
+
+  font-size: 14px;
+  color: #64748b;
+}
+
+.guide-close {
+  flex: 0 0 auto;
+
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 12px;
+
+  border: 1px solid #e2e8f0;
+
+  background: #ffffff;
+
+  color: #64748b;
+
+  font-size: 27px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.guide-close:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+
+/* =====================================================
+   SECTIONS
+===================================================== */
+
+.user-guide-dialog section {
+  padding: 22px 26px;
+}
+
+.guide-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+.guide-section-title > span {
+  display: grid;
+  place-items: center;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 13px;
+
+  background: #dbeafe;
+
+  font-size: 21px;
+}
+
+.guide-section-title h3 {
+  margin: 0;
+
+  font-size: 18px;
+  font-weight: 900;
+
+  color: #0f172a;
+}
+
+.guide-section-title p {
+  margin: 2px 0 0;
+
+  font-size: 13px;
+  color: #64748b;
+}
+
+
+/* =====================================================
+   QUICK START
+===================================================== */
+
+.guide-quick-start {
+  background: #f8fafc;
+}
+
+.quick-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 12px;
+}
+
+.quick-step {
+  display: flex;
+  gap: 12px;
+
+  padding: 16px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+
+  background: white;
+}
+
+.quick-step-number {
+  flex: 0 0 34px;
+
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 999px;
+
+  background: #2563eb;
+
+  color: white;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.quick-step strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #0f172a;
+
+  font-size: 14px;
+}
+
+.quick-step p {
+  margin: 0;
+
+  font-size: 12.5px;
+  line-height: 1.55;
+
+  color: #64748b;
+}
+
+
+/* =====================================================
+   FEATURE CARDS
+===================================================== */
+
+.guide-feature-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+.guide-feature-card {
+  display: flex;
+  gap: 14px;
+
+  padding: 16px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.guide-feature-card:hover {
+  transform: translateY(-2px);
+
+  border-color: #93c5fd;
+
+  box-shadow:
+    0 8px 24px rgba(37, 99, 235, 0.08);
+}
+
+.guide-feature-icon {
+  flex: 0 0 44px;
+
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 14px;
+
+  background: #eff6ff;
+
+  font-size: 22px;
+}
+
+.guide-feature-card h4 {
+  margin: 0 0 5px;
+
+  font-size: 14px;
+  font-weight: 900;
+
+  color: #0f172a;
+}
+
+.guide-feature-card p {
+  margin: 0;
+
+  font-size: 12.5px;
+  line-height: 1.55;
+
+  color: #64748b;
+}
+
+.guide-tip {
+  display: inline-block;
+
+  margin-top: 8px;
+  padding: 5px 8px;
+
+  border-radius: 7px;
+
+  background: #eff6ff;
+
+  color: #1d4ed8;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+
+/* =====================================================
+   IMPORTANT NOTICE
+===================================================== */
+
+.guide-important {
+  display: flex;
+  gap: 14px;
+
+  margin: 0 26px 22px;
+  padding: 16px !important;
+
+  border: 1px solid #fde68a;
+  border-radius: 16px;
+
+  background: #fffbeb;
+}
+
+.guide-important-icon {
+  font-size: 23px;
+}
+
+.guide-important strong {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #92400e;
+
+  font-size: 14px;
+}
+
+.guide-important p {
+  margin: 0;
+
+  color: #a16207;
+
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+
+/* =====================================================
+   FOOTER BUTTONS
+===================================================== */
+
+.guide-footer {
+  position: sticky;
+  bottom: 0;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 16px 26px;
+
+  border-top: 1px solid #e2e8f0;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  backdrop-filter: blur(12px);
+}
+
+.guide-primary-btn,
+.guide-secondary-btn {
+  padding: 11px 18px;
+
+  border-radius: 11px;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.guide-primary-btn {
+  background: #2563eb;
+  color: white;
+
+  border: 1px solid #2563eb;
+}
+
+.guide-primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.guide-secondary-btn {
+  background: white;
+  color: #334155;
+
+  border: 1px solid #cbd5e1;
+}
+
+.guide-secondary-btn:hover {
+  background: #f1f5f9;
+}
+
+
+/* =====================================================
+   DARK MODE
+===================================================== */
+
+body.dark-mode .guide-trigger {
+  background: #162238;
+  border-color: #334155;
+
+  color: #f8fafc;
+}
+
+body.dark-mode .guide-trigger:hover {
+  background: #1e293b;
+  border-color: #3b82f6;
+}
+
+body.dark-mode .guide-trigger-text small {
+  color: #94a3b8;
+}
+
+
+body.dark-mode .user-guide-dialog {
+  background: #0f172a;
+  color: #e2e8f0;
+
+  border-color: #334155;
+}
+
+body.dark-mode .user-guide-header {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.98),
+      rgba(30, 41, 59, 0.98)
+    );
+
+  border-color: #334155;
+}
+
+body.dark-mode .user-guide-header h2,
+body.dark-mode .guide-section-title h3,
+body.dark-mode .quick-step strong,
+body.dark-mode .guide-feature-card h4 {
+  color: #f8fafc;
+}
+
+body.dark-mode .user-guide-header p,
+body.dark-mode .guide-section-title p,
+body.dark-mode .quick-step p,
+body.dark-mode .guide-feature-card p {
+  color: #cbd5e1;
+}
+
+body.dark-mode .guide-close {
+  background: #1e293b;
+  border-color: #475569;
+
+  color: #e2e8f0;
+}
+
+body.dark-mode .guide-quick-start {
+  background: #111c30;
+}
+
+body.dark-mode .quick-step,
+body.dark-mode .guide-feature-card {
+  background: #162238;
+
+  border-color: #334155;
+}
+
+body.dark-mode .guide-feature-icon,
+body.dark-mode .guide-section-title > span {
+  background: #1e3a5f;
+}
+
+body.dark-mode .guide-tip {
+  background: #172554;
+  color: #93c5fd;
+}
+
+body.dark-mode .guide-important {
+  background: #2b2110;
+  border-color: #854d0e;
+}
+
+body.dark-mode .guide-important strong {
+  color: #fde68a;
+}
+
+body.dark-mode .guide-important p {
+  color: #fcd34d;
+}
+
+body.dark-mode .guide-footer {
+  background: rgba(15, 23, 42, 0.96);
+
+  border-color: #334155;
+}
+
+body.dark-mode .guide-secondary-btn {
+  background: #1e293b;
+
+  border-color: #475569;
+
+  color: #e2e8f0;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 700px) {
+
+  .guide-trigger {
+    padding: 8px 10px;
+  }
+
+  .guide-trigger-text small {
+    display: none;
+  }
+
+  .guide-trigger-arrow {
+    display: none;
+  }
+
+  .user-guide-modal {
+    padding: 7px;
+  }
+
+  .user-guide-dialog {
+    max-height: 96vh;
+
+    border-radius: 18px;
+  }
+
+  .user-guide-header {
+    padding: 18px;
+  }
+
+  .user-guide-header h2 {
+    font-size: 20px;
+  }
+
+  .user-guide-dialog section {
+    padding: 18px;
+  }
+
+  .quick-step-grid,
+  .guide-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-important {
+    margin:
+      0 18px 18px;
+  }
+
+  .guide-footer {
+    padding: 14px 18px;
+  }
+
+  .guide-footer button {
+    flex: 1;
+  }
+
+}
+
+  
   .history-sidebar {
     padding: 0.85rem !important;
   }
