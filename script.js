@@ -2039,3 +2039,109 @@ function clearHistory() {
   localStorage.removeItem(historyStorageKey());
   renderHistory();
 }
+// =====================================================
+// USER GUIDE
+// =====================================================
+
+function openUserGuide() {
+  const modal = document.getElementById("user-guide-modal");
+
+  if (!modal) return;
+
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+
+  document.body.style.overflow = "hidden";
+
+  const closeButton = modal.querySelector(".guide-close");
+
+  if (closeButton) {
+    setTimeout(() => closeButton.focus(), 50);
+  }
+}
+
+
+function closeUserGuide() {
+  const modal = document.getElementById("user-guide-modal");
+
+  if (!modal) return;
+
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+
+  document.body.style.overflow = "";
+}
+
+
+function handleGuideBackdrop(event) {
+  if (event.target.id === "user-guide-modal") {
+    closeUserGuide();
+  }
+}
+
+
+/* ESC closes guide */
+document.addEventListener("keydown", event => {
+
+  if (event.key === "Escape") {
+    closeUserGuide();
+  }
+
+});
+
+
+function startScamCheckFromGuide() {
+
+  closeUserGuide();
+
+  if (typeof switchTab === "function") {
+    switchTab("analyzer");
+  }
+
+  setTimeout(() => {
+
+    const messageBox =
+      document.getElementById("message");
+
+    if (messageBox) {
+
+      messageBox.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      messageBox.focus();
+
+    }
+
+  }, 200);
+
+}
+
+
+function openScamLibraryFromGuide() {
+
+  closeUserGuide();
+
+  if (typeof switchTab === "function") {
+    switchTab("library");
+  }
+
+  setTimeout(() => {
+
+    const library =
+      document.getElementById("tab-library");
+
+    if (library) {
+
+      library.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }
+
+  }, 200);
+
+}
+
