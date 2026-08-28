@@ -19,6 +19,22 @@
 
       <div class="flex flex-wrap justify-end items-center gap-2 mb-4">
         <label for="language-select" class="sr-only" data-i18n="languageLabel">Ngôn ngữ</label>
+        <!-- NEW USER GUIDE BUTTON -->
+<button
+  id="guide-trigger"
+  type="button"
+  class="guide-trigger"
+  onclick="openUserGuide()"
+>
+  <span class="guide-trigger-icon">👋</span>
+
+  <span class="guide-trigger-text">
+    <strong>Người mới?</strong>
+    <small>Hướng dẫn sử dụng</small>
+  </span>
+
+  <span class="guide-trigger-arrow">›</span>
+</button>
         <select
           id="language-select"
           onchange="changeLanguage(this.value)"
