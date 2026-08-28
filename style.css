@@ -656,3 +656,381 @@ body.dark-mode .history-header h3 {
     flex-direction: column;
   }
 }
+
+/* Keep scam-library examples readable in both themes. */
+.library-sample {
+  padding: 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid #fdba74;
+  background: #fff7ed;
+  color: #7c2d12;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+  opacity: 1;
+}
+
+body.dark-mode .library-sample {
+  background: #ffedd5 !important;
+  color: #7c2d12 !important;
+  border-color: #fb923c !important;
+}
+
+.media-analyzer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.media-analyzer-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1e293b;
+}
+
+.media-analyzer-heading h4 {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.media-analyzer-description {
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.image-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 128px;
+  margin-top: 0.75rem;
+  padding: 0.8rem;
+  border: 2px dashed #93c5fd;
+  border-radius: 0.85rem;
+  background: #eff6ff;
+  color: #1e40af;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.image-dropzone:hover,
+.image-dropzone.is-dragging {
+  border-color: #2563eb;
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.image-dropzone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.image-dropzone-icon {
+  font-size: 1.6rem;
+}
+
+.image-dropzone strong {
+  font-size: 0.88rem;
+}
+
+.image-dropzone small {
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.image-preview-wrap {
+  margin-top: 0.75rem;
+}
+
+#image-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.qr-detected {
+  margin-top: 0.5rem;
+  padding: 0.55rem;
+  border-radius: 0.6rem;
+  background: #ecfdf5;
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.image-action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+#image-analyze-btn,
+#image-clear-btn {
+  min-height: 42px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+#image-analyze-btn {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+#image-clear-btn {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.image-upload-status {
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.image-upload-status.info,
+.image-upload-status.loading {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.image-upload-status.success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.image-upload-status.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+body.dark-mode .media-analyzer {
+  border-color: #334155;
+}
+
+body.dark-mode .media-analyzer-heading {
+  color: #e2e8f0;
+}
+
+body.dark-mode .media-analyzer-description {
+  color: #cbd5e1;
+}
+
+body.dark-mode .image-dropzone {
+  background: #172554;
+  border-color: #3b82f6;
+  color: #dbeafe;
+}
+
+body.dark-mode .image-dropzone small {
+  color: #bfdbfe;
+}
+
+body.dark-mode #image-clear-btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.warning-card-section {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
+.warning-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.warning-card-header h3 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.warning-card-header button {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.warning-card-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #eef2f7;
+}
+
+#warning-card-preview {
+  display: block;
+  width: min(100%, 460px);
+  height: auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+.warning-card-loading {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.warning-card-status {
+  margin-top: 0.55rem;
+  color: #475569;
+  font-size: 0.82rem;
+}
+
+body.dark-mode .warning-card-section {
+  background: #111827;
+  border-color: #475569;
+}
+
+body.dark-mode .warning-card-header h3,
+body.dark-mode .warning-card-status {
+  color: #e2e8f0;
+}
+
+body.dark-mode .warning-card-preview-frame {
+  background: #020617;
+  border-color: #475569;
+}
+
+@media (max-width: 520px) {
+  .warning-card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .warning-card-header button {
+    width: 100%;
+  }
+
+  .image-action-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   ScamCheck v8 final layout lock
+   Keeps the right-side history + image/QR panel in place on
+   normal desktop/tablet widths and prevents older responsive
+   rules from collapsing the UI too early.
+========================================================= */
+.app-layout {
+  width: 100% !important;
+  max-width: 1180px !important;
+  margin-inline: auto !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 320px !important;
+  gap: 20px !important;
+  align-items: start !important;
+}
+
+.app-main {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+.history-sidebar {
+  width: 100% !important;
+  min-width: 0 !important;
+  position: sticky !important;
+  top: 20px !important;
+  max-height: calc(100vh - 40px) !important;
+  overflow-y: auto !important;
+}
+
+#history-list {
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.media-analyzer {
+  margin-top: 1rem !important;
+  padding: 0.9rem !important;
+  border: 1px solid #dbe3ef !important;
+  border-radius: 0.9rem !important;
+  background: #f8fafc !important;
+}
+
+.image-dropzone {
+  width: 100%;
+  min-height: 150px;
+}
+
+body.dark-mode .media-analyzer {
+  background: #111827 !important;
+  border-color: #334155 !important;
+}
+
+/* The sidebar should remain to the right at widths like the
+   940 px screenshot. Only compact devices stack it below. */
+@media (max-width: 819px) {
+  .app-layout {
+    display: block !important;
+  }
+
+  .history-sidebar {
+    position: static !important;
+    max-height: none !important;
+    margin-top: 1.25rem !important;
+  }
+
+  #history-list {
+    max-height: 260px;
+  }
+}
+
+@media (min-width: 820px) and (max-width: 1023px) {
+  body {
+    padding: 12px !important;
+  }
+
+  .app-layout {
+    grid-template-columns: minmax(0, 1fr) 300px !important;
+    gap: 14px !important;
+  }
+
+  .app-main {
+    padding: 18px !important;
+  }
+
+  .history-sidebar {
+    padding: 0.85rem !important;
+  }
+}

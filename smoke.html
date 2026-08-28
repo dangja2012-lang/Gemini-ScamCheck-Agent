@@ -7,7 +7,7 @@
   <title>ScamCheck - Công cụ kiểm tra tin nhắn lừa đảo</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="./style.css?v=14" />
+  <link rel="stylesheet" href="./style.css?v=10" />
   <link rel="icon" type="image/png" href="./favicon.png" />
 </head>
 
@@ -219,5 +219,19 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="./translations.js?v=14"></script>
   <script src="./script.js?v=14"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  fillSample(1);
+  switchTab("library");
+  setTimeout(() => {
+    const probe = document.createElement("div");
+    probe.id = "smoke-probe";
+    probe.setAttribute("data-message", document.getElementById("message").value);
+    probe.setAttribute("data-count", document.getElementById("library-count").textContent);
+    probe.setAttribute("data-cards", String(document.getElementById("library-grid").children.length));
+    document.body.appendChild(probe);
+  }, 50);
+});
+</script>
 </body>
 </html>
