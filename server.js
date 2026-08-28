@@ -13,95 +13,11 @@ dotenv.config({ path: path.join(ROOT_DIR, ".env") });
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
-
-// Browser-origin protection. Add custom production origins through the
-// comma-separated ALLOWED_ORIGINS environment variable when needed.
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://gemini-scamcheck-agent.onrender.com",
-  "https://dangja2012-lang.github.io",
-  "http://127.0.0.1:3000",
-  "http://localhost:3000"
-];
-
-const ALLOWED_ORIGINS = new Set([
-  ...DEFAULT_ALLOWED_ORIGINS,
-  ...String(process.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map(value => value.trim().replace(/\/$/, ""))
-    .filter(Boolean)
-]);
-
-app.use(cors({
-  origin(origin, callback) {
-    // Requests without an Origin header include same-server health checks,
-    // curl, and Render probes. AI endpoints are additionally rate limited.
-    if (!origin || ALLOWED_ORIGINS.has(origin.replace(/\/$/, ""))) {
-      return callback(null, true);
-    }
-    return callback(new Error("CORS origin not allowed"));
-  }
-}));
-
+app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  next();
-});
-
-// Small in-memory limiter to reduce accidental/public Gemini quota abuse.
-// It is deliberately generous for normal users and resets when Render restarts.
-const AI_RATE_WINDOW_MS = 60_000;
-const AI_RATE_MAX = 20;
-const aiRateBuckets = new Map();
-
-function aiRateLimit(req, res, next) {
-  const now = Date.now();
-  const key = req.ip || req.socket?.remoteAddress || "unknown";
-  const current = aiRateBuckets.get(key);
-
-  if (!current || now >= current.resetAt) {
-    aiRateBuckets.set(key, { count: 1, resetAt: now + AI_RATE_WINDOW_MS });
-    return next();
-  }
-
-  current.count += 1;
-  if (current.count > AI_RATE_MAX) {
-    const retryAfter = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
-    res.setHeader("Retry-After", String(retryAfter));
-    return res.status(429).json({
-      error: "Too many analysis requests",
-      reason: "RATE_LIMITED",
-      hint: `Please wait ${retryAfter} seconds and try again.`
-    });
-  }
-
-  return next();
-}
-
-// Periodically remove expired limiter buckets.
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, bucket] of aiRateBuckets.entries()) {
-    if (now >= bucket.resetAt) aiRateBuckets.delete(key);
-  }
-}, AI_RATE_WINDOW_MS).unref();
-
 function cleanSecret(value) {
-  let text = typeof value === "string" ? value.trim() : "";
-  if (!text) return null;
-
-  // Be tolerant of accidental quotes or a trailing semicolon copied from JS.
-  if (
-    (text.startsWith('"') && text.endsWith('"')) ||
-    (text.startsWith("'") && text.endsWith("'"))
-  ) {
-    text = text.slice(1, -1).trim();
-  }
-  text = text.replace(/;+$/g, "").trim();
+  const text = typeof value === "string" ? value.trim() : "";
   return text || null;
 }
 
@@ -187,7 +103,13 @@ const UI_TRANSLATION_SOURCE = {
   sourceImage: "Uploaded image / QR code"
 };
 const translationCache = new Map();
-const GEMINI_MODELS = [...new Set([GEMINI_MODEL, "gemini-3.7-flash", "gemini-3.6-flash"])];
+const GEMINI_MODELS = [...new Set([
+  GEMINI_MODEL,
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite"
+])];
 const GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 function parseJsonText(text) {
@@ -216,83 +138,60 @@ function readGeminiError(status, raw) {
 
 function classifyFailures(failures) {
   const combined = failures.map(item => `${item.status} ${item.message}`).join(" ");
-
-  if (/API_KEY_INVALID|API key not valid|invalid api key|UNAUTHENTICATED|ACCESS_TOKEN_TYPE_UNSUPPORTED|authentication/i.test(combined)) {
-    return {
-      reason: "INVALID_API_KEY",
-      httpStatus: 401,
-      hint: "Gemini rejected the loaded credential. In Render, replace GEMINI_API_KEY with a fresh key from Google AI Studio, save the environment variables, and redeploy."
-    };
-  }
-
   if (/unrestricted.*standard|standard.*key|auth key|blocked.*key/i.test(combined)) {
     return {
       reason: "AUTH_KEY_REQUIRED",
       httpStatus: 401,
-      hint: "The loaded key type or restriction is not accepted for this Gemini request. Create a current Gemini key in Google AI Studio and store it as GEMINI_API_KEY in Render."
+      hint: "Google now requires a current Gemini Auth key (or an explicitly Gemini-restricted legacy key). Create a fresh key in Google AI Studio and set it as GEMINI_API_KEY in your local .env file, then restart npm start."
     };
   }
-
-  if (/429|RESOURCE_EXHAUSTED|quota|rate.?limit|budget_exceeded|spend limit/i.test(combined)) {
+  if (/API_KEY_INVALID|API key not valid|invalid api key|UNAUTHENTICATED|ACCESS_TOKEN_TYPE_UNSUPPORTED|authentication/i.test(combined)) {
+    return {
+      reason: "INVALID_API_KEY",
+      httpStatus: 401,
+      hint: "Gemini rejected the loaded key. Replace GEMINI_API_KEY with a fresh key from Google AI Studio, save .env, then restart npm start. If a key was ever shown in a screenshot or committed to Git, revoke it first."
+    };
+  }
+  if (/quota_exceeded|daily quota|requests per day|\bRPD\b/i.test(combined)) {
     return {
       reason: "QUOTA_EXCEEDED",
       httpStatus: 429,
-      hint: "The Gemini quota, rate limit, or spend limit was reached. Check the Gemini usage/billing dashboard and retry when quota is available."
+      hint: "Gemini reports that the project quota is exhausted. Check AI Studio usage/billing and wait for the quota reset or increase the project quota."
     };
   }
 
+  if (/429|RESOURCE_EXHAUSTED|rate_limit_exceeded|rate.?limit|requests per minute|tokens per minute|\bRPM\b|\bTPM\b|spend/i.test(combined)) {
+    return {
+      reason: "GEMINI_RATE_LIMITED",
+      httpStatus: 429,
+      hint: "Gemini is rate-limiting this project/model. ScamCheck tried the configured fallback models. Wait briefly, reduce request frequency/token usage, or check the active limits in Google AI Studio."
+    };
+  }
   if (/403|PERMISSION_DENIED|permission_denied|denied access|access restricted/i.test(combined)) {
     return {
       reason: "PERMISSION_DENIED",
       httpStatus: 403,
-      hint: "Gemini denied this project or key. Check that the Render GEMINI_API_KEY belongs to a project with Gemini API access and valid restrictions."
+      hint: "Gemini denied this project/key. In Google AI Studio, create a new Auth key for a project with Gemini access; use a server-side Gemini key in your local .env file."
     };
   }
-
-  if (/404|NOT_FOUND|model[^\n]{0,80}(not found|unavailable|unsupported)|unsupported[^\n]{0,80}model/i.test(combined)) {
+  if (/404|NOT_FOUND|not_found|model/i.test(combined)) {
     return {
       reason: "MODEL_UNAVAILABLE",
       httpStatus: 503,
-      hint: "The requested Gemini model is unavailable to this project. ScamCheck also tried its configured fallback models."
+      hint: "The configured Gemini model is unavailable for this project. ScamCheck tried its current fallback models as well."
     };
   }
-
-  if (/400|INVALID_ARGUMENT|invalid_request|schema|parameter_unknown|malformed/i.test(combined)) {
+  if (/400|INVALID_ARGUMENT|invalid_request|schema|parameter_unknown/i.test(combined)) {
     return {
       reason: "BAD_REQUEST",
       httpStatus: 502,
-      hint: "Gemini rejected the request format. Check the sanitized failure details in Render Logs."
+      hint: "Gemini rejected the request format. Check the sanitized upstream error in the local Node terminal."
     };
   }
-
-  if (/Empty Gemini interaction|invalid JSON|JSON\.parse|unexpected token/i.test(combined)) {
-    return {
-      reason: "INVALID_GEMINI_RESPONSE",
-      httpStatus: 502,
-      hint: "Gemini responded, but ScamCheck could not read a usable structured result. Check Render Logs for the sanitized response state."
-    };
-  }
-
-  if (/fetch failed|ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|TimeoutError|AbortError|socket|network/i.test(combined)) {
-    return {
-      reason: "UPSTREAM_NETWORK_ERROR",
-      httpStatus: 503,
-      hint: "Render could not reliably reach the Gemini API. Retry shortly and check Render Logs for the network error."
-    };
-  }
-
-  if (/\b5\d\d\b|INTERNAL|UNAVAILABLE|SERVICE_UNAVAILABLE/i.test(combined)) {
-    return {
-      reason: "GEMINI_UPSTREAM_ERROR",
-      httpStatus: 503,
-      hint: "Gemini returned a temporary upstream service error. Retry shortly."
-    };
-  }
-
   return {
     reason: "GEMINI_UNAVAILABLE",
     httpStatus: 503,
-    hint: "Gemini could not complete the request. Open /health/gemini and check Render Logs for the detailed failure reason."
+    hint: "Gemini is temporarily unavailable. Check the local Node terminal and try again."
   };
 }
 
@@ -351,10 +250,6 @@ const IMAGE_RESPONSE_SCHEMA = {
 };
 
 function interactionOutputText(payload) {
-  if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
-    return payload.output_text.trim();
-  }
-
   const parts = [];
   for (const step of payload?.steps || []) {
     if (step?.type !== "model_output") continue;
@@ -373,7 +268,7 @@ async function requestGeminiInteraction({ prompt, imageData = null, mimeType = n
     error.diagnosis = {
       reason: "MISSING_API_KEY",
       httpStatus: 503,
-      hint: "Set GEMINI_API_KEY in the server environment (Render Environment in production, .env locally), then restart or redeploy."
+      hint: "Create a .env file beside server.js and set GEMINI_API_KEY=your_key, then restart npm start."
     };
     error.failures = [];
     throw error;
@@ -417,25 +312,20 @@ async function requestGeminiInteraction({ prompt, imageData = null, mimeType = n
           // 401/403 are key/project failures; trying the same key against other
           // models only creates duplicate errors. Move to the next configured key.
           if ([401, 403].includes(response.status)) break;
-          // 429 may be project/key quota. Another key can still succeed.
-          if (response.status === 429) break;
+          // IMPORTANT: A 429 can be model-specific (RPM/TPM) as well as
+          // project-wide quota. Do NOT break the model loop here.
+          // Continue so ScamCheck can try the next fallback model first.
+          if (response.status === 429) {
+            console.warn(`Gemini ${model} returned 429; trying the next fallback model.`);
+            continue;
+          }
+
           continue;
         }
 
         const envelope = JSON.parse(raw);
-
-        if (["failed", "cancelled", "incomplete", "budget_exceeded"].includes(envelope?.status)) {
-          const statusError = new Error(`Gemini interaction status: ${envelope.status}`);
-          statusError.httpStatus = 502;
-          throw statusError;
-        }
-
         const text = interactionOutputText(envelope);
-        if (!text) {
-          const emptyError = new Error(`Empty Gemini interaction (${envelope?.status || "unknown"})`);
-          emptyError.httpStatus = 502;
-          throw emptyError;
-        }
+        if (!text) throw new Error(`Empty Gemini interaction (${envelope?.status || "unknown"})`);
 
         return {
           result: parseJsonText(text),
@@ -446,13 +336,7 @@ async function requestGeminiInteraction({ prompt, imageData = null, mimeType = n
           failures
         };
       } catch (error) {
-        const failure = {
-          env: keyEntry.name,
-          keyType: keyEntry.type,
-          model,
-          status: Number(error?.httpStatus || 0),
-          message: error.message
-        };
+        const failure = { env: keyEntry.name, keyType: keyEntry.type, model, status: 0, message: error.message };
         failures.push(failure);
         console.warn("Gemini Interactions request crashed:", failure);
       }
@@ -587,7 +471,7 @@ async function expandLinksInMessage(message) {
     links
   };
 }
-app.post("/analyze", aiRateLimit, async (req, res) => {
+app.post("/analyze", async (req, res) => {
   const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   if (!message) {
     return res.status(400).json({ error: "Missing message" });
@@ -604,7 +488,7 @@ app.post("/analyze", aiRateLimit, async (req, res) => {
     return res.status(503).json({
       error: "Gemini is not configured",
       reason: "MISSING_API_KEY",
-      hint: "Set a fresh Gemini API key as GEMINI_API_KEY in the server environment, then restart locally or redeploy on Render."
+      hint: "Add a fresh Gemini API key as GEMINI_API_KEY in the local .env file and restart npm start."
     });
   }
 
@@ -680,7 +564,7 @@ Return one JSON object only, without Markdown:
   }
 });
 
-app.post("/analyze-image", aiRateLimit, async (req, res) => {
+app.post("/analyze-image", async (req, res) => {
   const imageValue = typeof req.body?.image === "string" ? req.body.image : "";
   const match = imageValue.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
   if (!match) return res.status(400).json({ error: "Invalid image data" });
@@ -701,7 +585,7 @@ app.post("/analyze-image", aiRateLimit, async (req, res) => {
     return res.status(503).json({
       error: "Gemini is not configured",
       reason: "MISSING_API_KEY",
-      hint: "Set a fresh Gemini API key as GEMINI_API_KEY in the server environment, then restart locally or redeploy on Render."
+      hint: "Add a fresh Gemini API key as GEMINI_API_KEY in the local .env file and restart npm start."
     });
   }
 
@@ -805,7 +689,7 @@ app.post("/translations", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
-    version: "v21",
+    version: "v21.1",
     geminiConfigured: GEMINI_KEYS.length > 0,
     // This means a secret was loaded, NOT that Google accepted it.
     geminiCredentialValidated: false,
@@ -857,7 +741,7 @@ app.get("/health/gemini", async (req, res) => {
 });
 
 app.get("/backend-info", (req, res) => {
-  res.json({ ok: true, service: "ScamCheck", version: "v21", mode: "same-origin" });
+  res.json({ ok: true, service: "ScamCheck", version: "v21.1", mode: "same-origin" });
 });
 
 // One-server architecture: `npm start`, then open http://127.0.0.1:3000.
@@ -885,7 +769,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`ScamCheck v21 running at http://127.0.0.1:${PORT}`);
+  console.log(`ScamCheck v21.1 running at http://127.0.0.1:${PORT}`);
   console.log(`Gemini key loaded: ${GEMINI_KEYS.length > 0 ? "yes" : "no"}`);
   if (GEMINI_KEYS.length) console.log(`Gemini env: ${GEMINI_KEYS.map(item => item.name).join(", ")}`);
   console.log(`Open the website at http://127.0.0.1:${PORT} (do not use Go Live).`);
